@@ -88,3 +88,11 @@ wine windows/leli.exe extract --folder example --protocol AImM
 ```
 
 Simply add *wine* in front of the normal command.
+
+### Auto Code Formatter
+
+Don't forget to code format the rust code using
+
+```bash
+cargo fmt
+```
