@@ -10,7 +10,7 @@ mod commands;
 mod schema;
 mod utils;
 
-use commands::{extract::*, save::*, translate::*, Args, Commands};
+use commands::{extract::*, remove::*, save::*, translate::*, Args, Commands};
 use utils::{ensure_pandoc_installed, process_protocol_aimm};
 
 /// Appends or updates `CODELITERAT_OUTPUT_PATH` in a local `.env` file
@@ -77,12 +77,12 @@ fn main() {
             output,
             protocol,
         } => {
-            let root_folder = match output {
-                Some(path_str) => PathBuf::from(path_str),
-                None => default_root.clone(),
-            };
-            let app_folder = root_folder.join(".app");
+            let root_folder = output
+                .as_ref()
+                .map(PathBuf::from)
+                .unwrap_or_else(|| default_root.clone());
 
+            let app_folder = root_folder.join(".app");
             fs::create_dir_all(&app_folder)
                 .unwrap_or_else(|e| panic!("Could not create .app folder: {}", e));
 
@@ -140,10 +140,11 @@ fn main() {
             css,
             mermaid,
         } => {
-            let root_folder = match output {
-                Some(path_str) => PathBuf::from(path_str),
-                None => default_root.clone(),
-            };
+            let root_folder = output
+                .as_ref()
+                .map(PathBuf::from)
+                .unwrap_or_else(|| default_root.clone());
+
             let doc_folder = root_folder.join("doc");
 
             fs::create_dir_all(&doc_folder)
@@ -181,10 +182,21 @@ fn main() {
             let created_files =
                 fs::read_to_string(file).expect("Unable to read created files list");
             let html_files: Vec<String> = created_files.lines().map(|s| s.to_string()).collect();
-
-            let mut conn = establish_connection(db); // Pass the database URL
+            let mut conn = establish_connection(db);
             if let Err(e) = save_html_metadata_to_db(&html_files, &mut conn, db) {
                 eprintln!("Error saving HTML metadata to database: {}", e);
+            }
+        }
+
+        // ------------------ Rm Command ------------------
+        Commands::Rm { all, output } => {
+            let root_folder = output
+                .as_ref()
+                .map(|path| PathBuf::from(path))
+                .unwrap_or_else(|| default_root.clone());
+
+            if let Err(e) = remove_output_folder(&root_folder.to_string_lossy(), *all) {
+                eprintln!("Error removing project files: {}", e);
             }
         }
     }

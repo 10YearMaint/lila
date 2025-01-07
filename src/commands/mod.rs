@@ -1,5 +1,6 @@
 pub mod extract;
 pub mod models;
+pub mod remove;
 pub mod save;
 pub mod translate;
 
@@ -61,5 +62,16 @@ pub enum Commands {
         /// Path to the SQLite database
         #[arg(short, long)]
         db: String,
+    },
+
+    /// Remove files created by `extract` and `translate`. Use `-a` to remove all output folders.
+    Rm {
+        /// Remove all files from the output folder, including other projects in .leli
+        #[arg(short, long)]
+        all: bool,
+
+        /// Output folder to remove (default: ~/.leli/<project_name>)
+        #[arg(short, long)]
+        output: Option<String>,
     },
 }
