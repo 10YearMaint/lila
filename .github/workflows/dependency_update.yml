@@ -1,55 +1,55 @@
-name: Check for Dependency Updates
+# name: Check for Dependency Updates
 
-on:
-  schedule:
-    # Runs at 18:30 every Sunday in Berlin, Germany Time (CET/CEST)
-    - cron: '30 18 * * 0'
-      timezone: 'Europe/Berlin'
-  workflow_dispatch:
+# on:
+#   schedule:
+#     # Runs at 18:30 every Sunday in Berlin, Germany Time (CET/CEST)
+#     - cron: '30 18 * * 0'
+#       timezone: 'Europe/Berlin'
+#   workflow_dispatch:
 
-jobs:
-  update_dependencies:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+# jobs:
+#   update_dependencies:
+#     runs-on: ubuntu-latest
+#     steps:
+#       - name: Checkout repository
+#         uses: actions/checkout@v4
 
-      - name: Set up Rust Toolchain
-        uses: actions-rust-lang/setup-rust-toolchain@v1
-        with:
-          toolchain: stable
+#       - name: Set up Rust Toolchain
+#         uses: actions-rust-lang/setup-rust-toolchain@v1
+#         with:
+#           toolchain: stable
 
-      - name: Install cargo-update
-        run: cargo install cargo-update
+#       - name: Install cargo-update
+#         run: cargo install cargo-update
 
-      - name: Check for outdated dependencies
-        id: cargo_outdated
-        run: |
-          if cargo install-update --all -- --dry-run | grep -q 'Yes'; then
-            echo "updated=true" >> $GITHUB_ENV
-          else
-            echo "updated=false" >> $GITHUB_ENV
-          fi
+#       - name: Check for outdated dependencies
+#         id: cargo_outdated
+#         run: |
+#           if cargo install-update --all -- --dry-run | grep -q 'Yes'; then
+#             echo "updated=true" >> $GITHUB_ENV
+#           else
+#             echo "updated=false" >> $GITHUB_ENV
+#           fi
 
-      - name: Update dependencies if outdated
-        if: env.updated == 'true'
-        run: |
-          current_datetime=$(TZ="Europe/Berlin" date +'%Y-%b-%d_%H-%M-%S')
-          branch_name="dependencies_update_${current_datetime}"
+#       - name: Update dependencies if outdated
+#         if: env.updated == 'true'
+#         run: |
+#           current_datetime=$(TZ="Europe/Berlin" date +'%Y-%b-%d_%H-%M-%S')
+#           branch_name="dependencies_update_${current_datetime}"
           
-          # Create a new branch
-          git checkout -b $branch_name
+#           # Create a new branch
+#           git checkout -b $branch_name
 
-          # Update Cargo.toml and Cargo.lock
-          cargo update
+#           # Update Cargo.toml and Cargo.lock
+#           cargo update
 
-          # Commit and push the changes
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add Cargo.toml Cargo.lock
-          git commit -m "Updated dependencies on $current_datetime"
-          git push origin $branch_name
+#           # Commit and push the changes
+#           git config user.name "github-actions[bot]"
+#           git config user.email "github-actions[bot]@users.noreply.github.com"
+#           git add Cargo.toml Cargo.lock
+#           git commit -m "Updated dependencies on $current_datetime"
+#           git push origin $branch_name
 
-      - name: Notify no updates
-        if: env.updated == 'false'
-        run: echo "No dependencies were updated."
+#       - name: Notify no updates
+#         if: env.updated == 'false'
+#         run: echo "No dependencies were updated."
