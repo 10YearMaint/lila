@@ -38,6 +38,10 @@ pub fn extract_code_from_markdown(file_path: &str) -> io::Result<Result<HashMap<
                 current_lang = "python".to_string();
             } else if line.contains(".rust") {
                 current_lang = "rust".to_string();
+            } else if line.contains("cpp") {
+                current_lang = "cpp".to_string();
+            } else if line.contains(".h") {
+                current_lang = "h".to_string();
             }
 
             if !code_blocks.contains_key(&current_lang) {
@@ -70,6 +74,8 @@ pub fn extract_code_from_markdown(file_path: &str) -> io::Result<Result<HashMap<
         let extension = match lang.as_str() {
             "python" => "py",
             "rust" => "rs",
+            "cpp" => "cpp",
+            "h" => "h",
             _ => continue,
         };
 
