@@ -9,7 +9,9 @@ pub struct MarkdownMeta {
     pub output_filename: String,
 }
 
-pub fn extract_code_from_markdown(file_path: &str) -> io::Result<Result<HashMap<String, String>, String>> {
+pub fn extract_code_from_markdown(
+    file_path: &str,
+) -> io::Result<Result<HashMap<String, String>, String>> {
     let path = Path::new(file_path);
     let file = File::open(&path)?;
     let reader = BufReader::new(file);

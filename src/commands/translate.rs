@@ -1,8 +1,8 @@
+use regex::Regex;
 use std::fs::{self, File};
 use std::io::{self, Write};
 use std::path::PathBuf;
 use std::process::Command;
-use regex::Regex;
 
 /// Generates HTML from a markdown file using Pandoc and saves it to the specified output path.
 /// Also injects the Mermaid.js script for rendering diagrams and removes unnecessary <code> tags.
@@ -10,7 +10,7 @@ pub fn generate_html_from_markdown(
     input_path: &str,
     output_path: &str,
     css_path: &str,
-    mermaid_js_path: &str
+    mermaid_js_path: &str,
 ) -> io::Result<()> {
     let output = Command::new("pandoc")
         .arg("--standalone")
@@ -74,7 +74,9 @@ fn clean_mermaid_code_tags(html_file_path: &str) -> io::Result<()> {
     let re = Regex::new(r#"<pre class="mermaid"><code>(?s)(.*?)</code></pre>"#).unwrap();
 
     // Replace with <pre class="mermaid">...</pre>
-    html_content = re.replace_all(&html_content, r#"<pre class="mermaid">$1</pre>"#).to_string();
+    html_content = re
+        .replace_all(&html_content, r#"<pre class="mermaid">$1</pre>"#)
+        .to_string();
 
     let mut file = File::create(html_file_path)?;
     file.write_all(html_content.as_bytes())?;
@@ -86,11 +88,17 @@ pub fn translate_markdown_folder(
     folder_path: &str,
     doc_folder: &str,
     css_path: &str,
-    mermaid_path: &str
+    mermaid_path: &str,
 ) -> io::Result<()> {
     let mut html_paths: Vec<String> = Vec::new();
 
-    translate_markdown_folder_internal(folder_path, doc_folder, css_path, mermaid_path, &mut html_paths)?;
+    translate_markdown_folder_internal(
+        folder_path,
+        doc_folder,
+        css_path,
+        mermaid_path,
+        &mut html_paths,
+    )?;
 
     // Write HTML file paths to a text file
     let output_path = PathBuf::from(doc_folder).join("created_html_files.txt");
@@ -108,7 +116,7 @@ fn translate_markdown_folder_internal(
     doc_folder: &str,
     css_path: &str,
     mermaid_path: &str,
-    html_paths: &mut Vec<String>
+    html_paths: &mut Vec<String>,
 ) -> io::Result<()> {
     for entry in fs::read_dir(folder_path)? {
         let entry = entry?;
@@ -122,16 +130,17 @@ fn translate_markdown_folder_internal(
                 sub_doc_folder.to_str().unwrap(),
                 css_path,
                 mermaid_path,
-                html_paths
+                html_paths,
             )?;
         } else if path.is_file() && path.extension().and_then(|s| s.to_str()) == Some("md") {
             let base_name = path.file_stem().unwrap().to_str().unwrap();
-            let html_output_path = PathBuf::from(doc_folder).join(format!("{}_combined.html", base_name));
+            let html_output_path =
+                PathBuf::from(doc_folder).join(format!("{}_combined.html", base_name));
             if let Err(e) = generate_html_from_markdown(
                 path.to_str().unwrap(),
                 html_output_path.to_str().unwrap(),
                 css_path,
-                mermaid_path
+                mermaid_path,
             ) {
                 eprintln!("Error generating HTML for {}: {}", path.display(), e);
             } else {

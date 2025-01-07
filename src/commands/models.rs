@@ -1,6 +1,6 @@
 // src/commands/models.rs
-use diesel::prelude::*;
 use crate::schema::html_metadata;
+use diesel::prelude::*;
 
 #[derive(Queryable, Insertable)]
 #[diesel(table_name = html_metadata)]
