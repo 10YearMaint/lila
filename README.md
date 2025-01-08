@@ -77,6 +77,13 @@ or
  ./target/release/leli save --file doc/created_html_files.txt --db mydatabase.sqlite
 ```
 
+### Chat2CodeLiterat (beta)
+
+```bash
+leli chat --model 2 \
+    --prompt "Can you understand HTML code? Can you provide me an example code? With a button? And if I click the button every time, a counter gets increased?.\nAnswer:" --quantized
+```
+
 
 ## Development
 

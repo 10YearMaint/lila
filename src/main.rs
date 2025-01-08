@@ -10,7 +10,9 @@ mod commands;
 mod schema;
 mod utils;
 
-use commands::{extract::*, remove::*, save::*, translate::*, Args, Commands};
+use commands::chat::ChatArgs;
+use commands::{chat::run_chat, extract::*, remove::*, save::*, translate::*, Args, Commands};
+
 use utils::{ensure_pandoc_installed, process_protocol_aimm};
 
 /// Appends or updates `CODELITERAT_OUTPUT_PATH` in a local `.env` file
@@ -197,6 +199,52 @@ fn main() {
 
             if let Err(e) = remove_output_folder(&root_folder.to_string_lossy(), *all) {
                 eprintln!("Error removing project files: {}", e);
+            }
+        }
+
+        // ------------------ Chat Command ----------------
+        Commands::Chat {
+            cpu,
+            tracing,
+            verbose_prompt,
+            prompt,
+            temperature,
+            top_p,
+            seed,
+            sample_len,
+            model_id,
+            model,
+            revision,
+            weight_file,
+            tokenizer,
+            quantized,
+            repeat_penalty,
+            repeat_last_n,
+            dtype,
+        } => {
+            // Construct the ChatArgs struct and pass it to run_chat:
+            let chat_args = ChatArgs {
+                cpu: *cpu,
+                tracing: *tracing,
+                verbose_prompt: *verbose_prompt,
+                prompt: prompt.clone(),
+                temperature: *temperature,
+                top_p: *top_p,
+                seed: *seed,
+                sample_len: *sample_len,
+                model_id: model_id.clone(),
+                model: model.clone(),
+                revision: revision.clone(),
+                weight_file: weight_file.clone(),
+                tokenizer: tokenizer.clone(),
+                quantized: *quantized,
+                repeat_penalty: *repeat_penalty,
+                repeat_last_n: *repeat_last_n,
+                dtype: dtype.clone(),
+            };
+
+            if let Err(err) = run_chat(chat_args) {
+                eprintln!("Error running chat: {}", err);
             }
         }
     }
