@@ -35,8 +35,7 @@ And please also install "Pandoc"
 If you are on a Unix-like system, you can use the following command:
 
 ```bash
-rustc install.rs
-./install
+rustc install.rs && ./install
 ```
 
 ## Usage
