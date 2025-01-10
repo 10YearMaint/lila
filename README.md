@@ -94,6 +94,12 @@ If you develop on a macOS, please use **leli** for Windows cross-compilation usi
 wine windows/leli.exe extract --folder example --protocol AImM
 ```
 
+Update schema.rs using
+
+```bash
+diesel migration run
+```
+
 Simply add *wine* in front of the normal command.
 
 ### Auto Code Formatter
