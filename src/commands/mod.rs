@@ -60,13 +60,9 @@ pub enum Commands {
 
     /// Save the extracted code and HTML metadata into a SQLite database
     Save {
-        /// File listing the created HTML files to be saved into the database
+        /// Optional: Path to the SQLite database (default: <doc_pure>/leli.db)
         #[arg(short, long)]
-        file: String,
-
-        /// Path to the SQLite database
-        #[arg(short, long)]
-        db: String,
+        db: Option<String>,
     },
 
     /// Remove files created by `extract` and `translate`. Use `-a` to remove all output folders.

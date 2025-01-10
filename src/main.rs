@@ -199,13 +199,53 @@ fn main() {
         }
 
         // ------------------ Save Command ------------------
-        Commands::Save { file, db } => {
+        Commands::Save { db } => {
+            // Define the doc_pure folder
+            let doc_pure_folder = default_root.join("doc_pure");
+
+            // Path to the created_html_files.txt
+            let file_path = doc_pure_folder.join("created_html_files.txt");
+
+            // Check if created_html_files.txt exists
+            if !file_path.exists() {
+                eprintln!(
+                    "Error: '{}' does not exist. Please run the 'translate' command first.",
+                    file_path.display()
+                );
+                std::process::exit(1);
+            }
+
+            // Read the created_html_files.txt
             let created_files =
-                fs::read_to_string(file).expect("Unable to read created files list");
+                fs::read_to_string(&file_path).expect("Unable to read created_html_files.txt");
+
             let html_files: Vec<String> = created_files.lines().map(|s| s.to_string()).collect();
-            let mut conn = establish_connection(db);
-            if let Err(e) = save_html_metadata_to_db(&html_files, &mut conn, db) {
+
+            // Determine the database path
+            let db_path = db
+                .as_ref()
+                .map(PathBuf::from)
+                .unwrap_or_else(|| doc_pure_folder.join("leli.db"));
+
+            // Ensure the parent directory of the database exists
+            if let Some(parent) = db_path.parent() {
+                fs::create_dir_all(parent)
+                    .unwrap_or_else(|e| panic!("Could not create database directory: {}", e));
+            }
+
+            // Establish connection
+            let mut conn = establish_connection(&db_path.to_string_lossy());
+
+            // Save HTML metadata to the database
+            if let Err(e) =
+                save_html_metadata_to_db(&html_files, &mut conn, &db_path.to_string_lossy())
+            {
                 eprintln!("Error saving HTML metadata to database: {}", e);
+            } else {
+                println!(
+                    "Successfully saved HTML metadata to '{}'",
+                    db_path.display()
+                );
             }
         }
 
