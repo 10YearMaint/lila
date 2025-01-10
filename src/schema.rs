@@ -1,15 +1,16 @@
 // @generated automatically by Diesel CLI.
 
 diesel::table! {
-    html_content (id) {
-        id -> Nullable<Integer>,
+    html_content (rowid) {
+        rowid -> Integer,
+        id -> Integer,
         content -> Text,
     }
 }
 
 diesel::table! {
     html_metadata (id) {
-        id -> Nullable<Integer>,
+        id -> Integer,
         file_path -> Text,
     }
 }
