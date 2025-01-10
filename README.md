@@ -60,7 +60,7 @@ If you want to create HTML files from the markdown files, you can use the follow
 
 ```bash
 ./target/release/leli translate --folder example --css src/css/style.css --mermaid src/js/mermaid.min.js
-
+./target/release/leli translate --folder example --css src/css/style.css --disable-mermaid
 ```
 
 If you don't specify a CSS file, the default CSS of src/css/style.css will be used.
@@ -68,13 +68,14 @@ If you don't specify a CSS file, the default CSS of src/css/style.css will be us
 If you want to save the meta data of the generated HTML files to a SQLite database, you can use the following command:
 
 ```bash
- ./target/release/leli save --file doc/created_html_files.txt --db mydatabase.db
+./target/release/leli save --db mydatabase.sqlite
 ```
 
 or
 
 ```bash
- ./target/release/leli save --file doc/created_html_files.txt --db mydatabase.sqlite
+./target/release/leli save --db mydatabase.db
+./target/release/leli save
 ```
 
 ### Chat2CodeLiterat (beta)
