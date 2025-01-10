@@ -1,19 +1,18 @@
-use crate::commands::models::HtmlMetadata;
+// src/commands/save.rs
+
+use crate::commands::models::{HtmlMetadata, HtmlContent};
+use crate::schema::{html_metadata, html_content}; // So we have the schema definitions
 use diesel::prelude::*;
 use diesel::result::Error;
 use diesel::sql_query;
-use diesel::sql_types::Text;
+use diesel::sql_types::{Text, BigInt};
 use diesel::sqlite::SqliteConnection;
 use dotenvy::dotenv;
 use std::fs;
+use std::path::Path;
 use std::process::Command;
 
-pub fn establish_connection(database_url: &str) -> SqliteConnection {
-    dotenv().ok();
-    SqliteConnection::establish(database_url)
-        .expect(&format!("Error connecting to {}", database_url))
-}
-
+/// Small struct for checking if a table exists.
 #[derive(QueryableByName)]
 struct Exists {
     #[diesel(sql_type = Text)]
@@ -21,15 +20,30 @@ struct Exists {
     name: String,
 }
 
+/// To fetch the SQLite `last_insert_rowid()` result.
+#[derive(QueryableByName)]
+struct LastInsertRowId {
+    #[diesel(sql_type = BigInt)]
+    last_insert_rowid: i64,
+}
+
+/// Establish a DB connection using the `DATABASE_URL` env variable.
+pub fn establish_connection(database_url: &str) -> SqliteConnection {
+    dotenv().ok();
+    SqliteConnection::establish(database_url)
+        .unwrap_or_else(|_| panic!("Error connecting to {database_url}"))
+}
+
+/// Check if a given table exists in SQLite.
 fn table_exists(conn: &mut SqliteConnection, table_name: &str) -> bool {
     let query = format!(
-        "SELECT name FROM sqlite_master WHERE type='table' AND name='{}';",
-        table_name
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='{table_name}';"
     );
     let result: Result<Option<Exists>, _> = sql_query(query).get_result(conn);
     result.map(|res| res.is_some()).unwrap_or(false)
 }
 
+/// Run Diesel migrations. Panics if migrations fail.
 fn run_migrations(database_url: &str) {
     let output = Command::new("diesel")
         .arg("migration")
@@ -37,6 +51,7 @@ fn run_migrations(database_url: &str) {
         .env("DATABASE_URL", database_url)
         .output()
         .expect("Failed to execute migration command");
+
     if !output.status.success() {
         panic!(
             "Migration failed: {}",
@@ -45,37 +60,80 @@ fn run_migrations(database_url: &str) {
     }
 }
 
+/// Insert or update HTML files' metadata/content in the DB.
 pub fn save_html_metadata_to_db(
     html_files: &[String],
     conn: &mut SqliteConnection,
     database_url: &str,
 ) -> Result<(), Error> {
-    use crate::schema::html_metadata::dsl::*;
+    // Alias each DSL to avoid `id` name collisions:
+    use html_metadata::dsl as md;
+    use html_content::dsl as ct;
 
-    if !table_exists(conn, "html_metadata") {
-        println!("Table 'html_metadata' does not exist. Running migrations...");
+    // 1) Check if tables exist; if not, run migrations and re-connect.
+    if !table_exists(conn, "html_metadata") || !table_exists(conn, "html_content") {
+        tracing::info!("Tables 'html_metadata' or 'html_content' do not exist. Running migrations...");
         run_migrations(database_url);
-        // Reconnect to the database to refresh the schema
         *conn = establish_connection(database_url);
     }
 
-    for path in html_files {
-        // Read the actual HTML content from the file
-        let content = fs::read_to_string(path.clone()).unwrap_or_else(|_| {
-            "<html><body><p>Failed to read HTML content.</p></body></html>".to_string()
-        });
+    // 2) Use a Diesel transaction for multiple inserts/updates.
+    conn.transaction::<(), Error, _>(|c| {
+        for path_str in html_files {
+            // Attempt to read file content
+            let path_obj = Path::new(path_str);
+            let content_val = fs::read_to_string(path_obj).unwrap_or_else(|_| {
+                "<html><body><p>Failed to read HTML content.</p></body></html>".to_string()
+            });
 
-        let new_metadata = HtmlMetadata {
-            id: None,
-            file_path: path.clone(),
-            html_content: content,
-        };
+            // Check if we already have a row in `html_metadata` for this file_path
+            let existing = md::html_metadata
+                .filter(md::file_path.eq(path_str))
+                .first::<HtmlMetadata>(c);
 
-        diesel::insert_into(html_metadata)
-            .values(&new_metadata)
-            .execute(conn)?;
-    }
+            match existing {
+                Ok(record) => {
+                    // UPDATE CASE: The record already exists in `html_metadata`.
+                    // Update the `content` in `html_content` referencing the same id:
+                    diesel::update(ct::html_content.find(record.id))
+                        .set(ct::content.eq(content_val))
+                        .execute(c)?;
 
-    println!("Saved HTML metadata to database");
-    Ok(())
+                    tracing::info!("Updated content for file_path '{}'", path_str);
+                }
+                Err(diesel::result::Error::NotFound) => {
+                    // INSERT CASE: No row for this path -> Insert into `html_metadata` first.
+                    diesel::insert_into(md::html_metadata)
+                        .values(md::file_path.eq(path_str))
+                        .execute(c)?;
+
+                    // Then fetch the new `id` from SQLite's last_insert_rowid().
+                    let row: LastInsertRowId = diesel::sql_query(
+                        "SELECT last_insert_rowid() as last_insert_rowid"
+                    )
+                    .get_result(c)?;
+
+                    let new_id = row.last_insert_rowid as i32;
+
+                    // Insert into `html_content` with the same `id`.
+                    diesel::insert_into(ct::html_content)
+                        .values((
+                            ct::id.eq(new_id),
+                            ct::content.eq(content_val),
+                        ))
+                        .execute(c)?;
+
+                    tracing::info!("Inserted metadata and content for '{}'", path_str);
+                }
+                Err(e) => {
+                    // Some other database error
+                    tracing::error!("Error querying metadata for '{}': {:?}", path_str, e);
+                    return Err(e);
+                }
+            }
+        }
+
+        println!("Successfully saved HTML metadata and content to the database.");
+        Ok(())
+    })
 }
