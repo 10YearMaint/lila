@@ -45,13 +45,17 @@ pub enum Commands {
         #[arg(short, long)]
         output: Option<String>,
 
-        /// Optional: custom CSS file for the output HTML
+        /// Optional: Custom CSS file for the output HTML
         #[arg(short, long)]
         css: Option<String>,
 
         /// Optional: Mermaid.js file for diagram rendering
         #[arg(short, long)]
         mermaid: Option<String>,
+
+        /// Optional: Disable Mermaid.js injection
+        #[arg(long, default_value_t = false)]
+        disable_mermaid: bool,
     },
 
     /// Save the extracted code and HTML metadata into a SQLite database

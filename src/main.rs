@@ -141,14 +141,22 @@ fn main() {
             output,
             css,
             mermaid,
+            disable_mermaid,
         } => {
+            // Determine the root folder based on the disable_mermaid flag
             let root_folder = output
                 .as_ref()
                 .map(PathBuf::from)
                 .unwrap_or_else(|| default_root.clone());
 
-            let doc_folder = root_folder.join("doc");
+            // Choose between "doc" and "doc_pure" based on the flag
+            let doc_folder = if *disable_mermaid {
+                root_folder.join("doc_pure")
+            } else {
+                root_folder.join("doc")
+            };
 
+            // Create the appropriate documentation folder
             fs::create_dir_all(&doc_folder)
                 .unwrap_or_else(|e| panic!("Could not create doc folder: {}", e));
 
@@ -157,23 +165,34 @@ fn main() {
                 eprintln!("Warning: Could not update .env: {}", e);
             }
 
+            // Determine CSS and Mermaid paths
             let css_path = css
                 .clone()
                 .unwrap_or_else(|| "src/css/style.css".to_string());
-            let mermaid_path = mermaid
-                .clone()
-                .unwrap_or_else(|| "src/js/mermaid.min.js".to_string());
+            let mermaid_path = if *disable_mermaid {
+                String::new() // Empty string signifies no Mermaid.js
+            } else {
+                mermaid
+                    .clone()
+                    .unwrap_or_else(|| "src/js/mermaid.min.js".to_string())
+            };
 
+            // Check if Pandoc is installed
             if !ensure_pandoc_installed() {
                 eprintln!("Pandoc is not installed. Please install Pandoc to use this tool.");
                 std::process::exit(1);
             }
 
+            // Perform the translation
             if let Err(e) = translate_markdown_folder(
                 &folder,
                 &doc_folder.to_string_lossy(),
                 &css_path,
-                &mermaid_path,
+                if *disable_mermaid {
+                    None
+                } else {
+                    Some(&mermaid_path)
+                },
             ) {
                 eprintln!("Error translating markdown: {}", e);
             }

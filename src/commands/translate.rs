@@ -10,18 +10,18 @@ pub fn generate_html_from_markdown(
     input_path: &str,
     output_path: &str,
     css_path: &str,
-    mermaid_js_path: &str,
+    mermaid_js_path: Option<&str>,
 ) -> io::Result<()> {
-    let output = Command::new("pandoc")
-        .arg("--standalone")
+    let mut cmd = Command::new("pandoc");
+    cmd.arg("--standalone")
         .arg("--to=html")
         .arg("--css")
         .arg(css_path)
         .arg("--output")
         .arg(output_path)
-        .arg(input_path)
-        .output()?;
+        .arg(input_path);
 
+    let output = cmd.output()?;
     if !output.status.success() {
         return Err(io::Error::new(
             io::ErrorKind::Other,
@@ -29,11 +29,11 @@ pub fn generate_html_from_markdown(
         ));
     }
 
-    // Inject Mermaid.js script into the generated HTML
-    inject_mermaid_script(output_path, mermaid_js_path)?;
-
-    // Remove unnecessary <code> tags inside <pre class="mermaid">
-    clean_mermaid_code_tags(output_path)?;
+    // If Mermaid.js injection is enabled, inject the script and clean tags
+    if let Some(mermaid_js_path) = mermaid_js_path {
+        inject_mermaid_script(output_path, mermaid_js_path)?;
+        clean_mermaid_code_tags(output_path)?;
+    }
 
     println!("Generated HTML from {} to {}", input_path, output_path);
     Ok(())
@@ -56,9 +56,11 @@ fn inject_mermaid_script(html_file_path: &str, mermaid_js_path: &str) -> io::Res
     );
 
     let mut html_content = fs::read_to_string(html_file_path)?;
-
     if let Some(body_end) = html_content.find("</body>") {
         html_content.insert_str(body_end, &mermaid_script);
+    } else {
+        // If </body> tag is not found, append the script at the end
+        html_content.push_str(&mermaid_script);
     }
 
     let mut file = File::create(html_file_path)?;
@@ -83,15 +85,14 @@ fn clean_mermaid_code_tags(html_file_path: &str) -> io::Result<()> {
     Ok(())
 }
 
-/// Translates all markdown files in a folder to HTML, applying the specified CSS and Mermaid.js files.
+/// Translates all markdown files in a folder to HTML, applying the specified CSS and optionally Mermaid.js files.
 pub fn translate_markdown_folder(
     folder_path: &str,
     doc_folder: &str,
     css_path: &str,
-    mermaid_path: &str,
+    mermaid_path: Option<&str>,
 ) -> io::Result<()> {
     let mut html_paths: Vec<String> = Vec::new();
-
     translate_markdown_folder_internal(
         folder_path,
         doc_folder,
@@ -106,7 +107,6 @@ pub fn translate_markdown_folder(
     for path in html_paths {
         writeln!(file, "{}", path)?;
     }
-
     Ok(())
 }
 
@@ -115,13 +115,12 @@ fn translate_markdown_folder_internal(
     folder_path: &str,
     doc_folder: &str,
     css_path: &str,
-    mermaid_path: &str,
+    mermaid_path: Option<&str>,
     html_paths: &mut Vec<String>,
 ) -> io::Result<()> {
     for entry in fs::read_dir(folder_path)? {
         let entry = entry?;
         let path = entry.path();
-
         if path.is_dir() {
             let sub_doc_folder = PathBuf::from(doc_folder).join(path.file_name().unwrap());
             fs::create_dir_all(&sub_doc_folder)?;
