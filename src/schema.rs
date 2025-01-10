@@ -16,7 +16,4 @@ diesel::table! {
 
 diesel::joinable!(html_content -> html_metadata (id));
 
-diesel::allow_tables_to_appear_in_same_query!(
-    html_content,
-    html_metadata,
-);
+diesel::allow_tables_to_appear_in_same_query!(html_content, html_metadata,);

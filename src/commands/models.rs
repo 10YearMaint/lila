@@ -1,4 +1,4 @@
-use crate::schema::{html_metadata, html_content};
+use crate::schema::{html_content, html_metadata};
 use diesel::prelude::*;
 use diesel::Queryable;
 

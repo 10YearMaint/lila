@@ -1,11 +1,9 @@
-// src/commands/save.rs
-
-use crate::commands::models::{HtmlMetadata, HtmlContent};
-use crate::schema::{html_metadata, html_content}; // So we have the schema definitions
+use crate::commands::models::{HtmlContent, HtmlMetadata};
+use crate::schema::{html_content, html_metadata};
 use diesel::prelude::*;
 use diesel::result::Error;
 use diesel::sql_query;
-use diesel::sql_types::{Text, BigInt};
+use diesel::sql_types::{BigInt, Text};
 use diesel::sqlite::SqliteConnection;
 use dotenvy::dotenv;
 use std::fs;
@@ -36,9 +34,8 @@ pub fn establish_connection(database_url: &str) -> SqliteConnection {
 
 /// Check if a given table exists in SQLite.
 fn table_exists(conn: &mut SqliteConnection, table_name: &str) -> bool {
-    let query = format!(
-        "SELECT name FROM sqlite_master WHERE type='table' AND name='{table_name}';"
-    );
+    let query =
+        format!("SELECT name FROM sqlite_master WHERE type='table' AND name='{table_name}';");
     let result: Result<Option<Exists>, _> = sql_query(query).get_result(conn);
     result.map(|res| res.is_some()).unwrap_or(false)
 }
@@ -67,12 +64,14 @@ pub fn save_html_metadata_to_db(
     database_url: &str,
 ) -> Result<(), Error> {
     // Alias each DSL to avoid `id` name collisions:
-    use html_metadata::dsl as md;
     use html_content::dsl as ct;
+    use html_metadata::dsl as md;
 
     // 1) Check if tables exist; if not, run migrations and re-connect.
     if !table_exists(conn, "html_metadata") || !table_exists(conn, "html_content") {
-        tracing::info!("Tables 'html_metadata' or 'html_content' do not exist. Running migrations...");
+        tracing::info!(
+            "Tables 'html_metadata' or 'html_content' do not exist. Running migrations..."
+        );
         run_migrations(database_url);
         *conn = establish_connection(database_url);
     }
@@ -108,19 +107,15 @@ pub fn save_html_metadata_to_db(
                         .execute(c)?;
 
                     // Then fetch the new `id` from SQLite's last_insert_rowid().
-                    let row: LastInsertRowId = diesel::sql_query(
-                        "SELECT last_insert_rowid() as last_insert_rowid"
-                    )
-                    .get_result(c)?;
+                    let row: LastInsertRowId =
+                        diesel::sql_query("SELECT last_insert_rowid() as last_insert_rowid")
+                            .get_result(c)?;
 
                     let new_id = row.last_insert_rowid as i32;
 
                     // Insert into `html_content` with the same `id`.
                     diesel::insert_into(ct::html_content)
-                        .values((
-                            ct::id.eq(new_id),
-                            ct::content.eq(content_val),
-                        ))
+                        .values((ct::id.eq(new_id), ct::content.eq(content_val)))
                         .execute(c)?;
 
                     tracing::info!("Inserted metadata and content for '{}'", path_str);
