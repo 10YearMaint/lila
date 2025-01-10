@@ -5,6 +5,7 @@ use diesel::sql_query;
 use diesel::sql_types::Text;
 use diesel::sqlite::SqliteConnection;
 use dotenvy::dotenv;
+use std::fs;
 use std::process::Command;
 
 pub fn establish_connection(database_url: &str) -> SqliteConnection {
@@ -59,14 +60,20 @@ pub fn save_html_metadata_to_db(
     }
 
     for path in html_files {
+        // Read the actual HTML content from the file
+        let content = fs::read_to_string(path.clone()).unwrap_or_else(|_| {
+            "<html><body><p>Failed to read HTML content.</p></body></html>".to_string()
+        });
+
         let new_metadata = HtmlMetadata {
             id: None,
             file_path: path.clone(),
+            html_content: content,
         };
 
         diesel::insert_into(html_metadata)
             .values(&new_metadata)
-            .execute(conn)?; // Use mutable reference
+            .execute(conn)?;
     }
 
     println!("Saved HTML metadata to database");
