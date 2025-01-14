@@ -1,17 +1,7 @@
 use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
-use std::process::Command;
 use walkdir::WalkDir;
-
-pub fn ensure_pandoc_installed() -> bool {
-    let output = Command::new("pandoc").arg("--version").output();
-
-    match output {
-        Ok(output) if output.status.success() => true,
-        _ => false,
-    }
-}
 
 pub fn process_protocol_aimm(app_folder: &Path) -> io::Result<()> {
     let mut folders_to_process = Vec::new();

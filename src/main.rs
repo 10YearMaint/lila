@@ -13,7 +13,7 @@ mod utils;
 use commands::chat::ChatArgs;
 use commands::{chat::run_chat, extract::*, remove::*, save::*, translate::*, Args, Commands};
 
-use utils::{utils::ensure_pandoc_installed, utils::process_protocol_aimm};
+use utils::{env::ensure_pandoc_installed, utils::process_protocol_aimm};
 
 /// Appends or updates `CODELITERAT_OUTPUT_PATH` in a local `.env` file
 /// without including subfolders (like `.app` or `doc`).
