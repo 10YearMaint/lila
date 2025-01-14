@@ -8,10 +8,10 @@ build = "build.rs"
 
 [dependencies]
 anyhow = "1.0.95"
-candle-core = { git = "https://github.com/huggingface/candle.git" }
-candle-examples = { git = "https://github.com/huggingface/candle.git" }
-candle-nn = { git = "https://github.com/huggingface/candle.git" }
-candle-transformers = { git = "https://github.com/huggingface/candle.git" }
+candle-core = { git = "https://github.com/huggingface/candle.git", version = "0.8.2" }
+candle-examples = { git = "https://github.com/huggingface/candle.git", version = "0.8.2" }
+candle-nn = { git = "https://github.com/huggingface/candle.git", version = "0.8.2" }
+candle-transformers = { git = "https://github.com/huggingface/candle.git", version = "0.8.2" }
 clap = { version = "4.5.10", features = ["derive"] }
 csv = "1.3.1"
 diesel = { version = "2.2.0", features = ["sqlite"] }
