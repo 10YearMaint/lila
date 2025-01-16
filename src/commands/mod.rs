@@ -1,10 +1,10 @@
+pub mod auto;
 pub mod chat;
 pub mod extract;
 pub mod models;
 pub mod remove;
 pub mod save;
 pub mod translate;
-pub mod auto;
 
 use clap::{Parser, Subcommand};
 
