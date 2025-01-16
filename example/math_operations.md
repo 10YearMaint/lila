@@ -32,3 +32,12 @@ fn simple_math(a: i32, b: i32) {
 ```
 
 The *leli* CLI can handle both Python and Rust code snippets located in the same markdown file.
+
+And if you run the "auto" command of *leli* on this file, you see the code reformated version of the following poorly formatted Rust function:
+
+```{.rust .cb-code}
+fn calculate_sum_and_product(a:i32,b:i32)->(i32,i32){
+let sum=a+b;
+let product=a*b;if sum > 10 {println!("Sum is greater than 10");}else {println!("Sum is 10 or less");}
+return (sum,product);}
+```

@@ -1,3 +1,4 @@
+pub mod auto;
 pub mod chat;
 pub mod extract;
 pub mod models;
@@ -33,6 +34,17 @@ pub enum Commands {
         /// Optional: Specify a protocol (e.g., AImM) for special handling of extracted files
         #[arg(short, long)]
         protocol: Option<String>,
+    },
+
+    /// Auto-format code blocks (Python, Rust, etc.) in a Markdown file *or* folder
+    Auto {
+        /// Specify a single Markdown file (conflicts with folder)
+        #[arg(short, long, conflicts_with = "folder")]
+        file: Option<String>,
+
+        /// Specify a folder containing Markdown files (conflicts with file)
+        #[arg(short, long, conflicts_with = "file")]
+        folder: Option<String>,
     },
 
     /// Translate Markdown files into HTML using Pandoc

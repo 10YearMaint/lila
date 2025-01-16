@@ -54,17 +54,3 @@ graph LR
     classDef dataNode fill:#d9d1be,stroke:#333,stroke-width:2px;
     classDef outputNode fill:#81C7D4,stroke:#333,stroke-width:2px;
 ```
-
-## Some Rust Code
-
-```{.rust .cb-code}
-use std::error::Error;
-use log::info;
-
-extern crate mesh_cartography_lib;
-
-fn main() -> Result<(), Box<dyn Error>> {
-    mesh_cartography_lib::init_logger();
-    info!("Simulation Logger initialized.");
-}
-```
