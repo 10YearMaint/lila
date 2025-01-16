@@ -40,6 +40,8 @@ rustc install.rs && ./install
 
 ## Usage
 
+### Extract Literate Code into normal Source Code
+
 ```bash
 ./target/release/leli extract --file example/math_operations.md
 ```
@@ -56,6 +58,17 @@ If you code using the AImM protocol you should use the following command:
 ./target/release/leli extract --folder example --protocol AImM
 ```
 
+### Auto Code Format Original Literate Code
+
+*leli* has the functionality to auto code format literated code and insert it back into its original markdown file inplace.
+For this use the following command logic:
+
+```
+./target/release/leli auto --folder example
+```
+
+### Markdown to HTML Translator
+
 If you want to create HTML files from the markdown files, you can use the following command:
 
 ```bash
@@ -64,6 +77,8 @@ If you want to create HTML files from the markdown files, you can use the follow
 ```
 
 If you don't specify a CSS file, the default CSS of src/css/style.css will be used.
+
+### Save HTML files in a Database
 
 If you want to save the meta data of the generated HTML files to a SQLite database, you can use the following command:
 
