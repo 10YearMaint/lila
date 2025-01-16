@@ -1,109 +1,192 @@
 use std::fs::{self, File};
 use std::io::{self, BufRead, BufReader, Write};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use tempfile::NamedTempFile;
 
-/// Auto-format Python code blocks in a given Markdown file using `black`,
-/// then re-insert the formatted code into the Markdown in place.
+/// Auto-format code blocks (Python, Rust) in a given Markdown file.
+/// It detects Python or Rust code blocks by looking for e.g.
+/// \`\`\`{.python} or \`\`\`rust fences.
 pub fn auto_format_code_in_markdown(file_path: &str) -> io::Result<()> {
     let path = Path::new(file_path);
     let file = File::open(&path)?;
     let reader = BufReader::new(file);
-    let mut temp_file = NamedTempFile::new()?;
 
     let mut lines: Vec<String> = Vec::new();
     let mut in_code_block = false;
-    let mut is_python_block = false;
+
+    // We'll store which language we detected for the currently active code block.
+    let mut code_block_language = CodeLanguage::Unknown;
+
+    // Temporary buffer for the lines inside the code block.
     let mut code_block_lines: Vec<String> = Vec::new();
-    let mut code_block_start_index: usize = 0; // Where in `lines` we started the code block
 
-    // Read file lines into memory
-    for line in reader.lines() {
-        let line = line?;
+    // We'll note where the code block started in `lines`, so we know where to re-insert after formatting.
+    let mut code_block_start_index: usize = 0;
 
-        // Check if we hit a triple-backtick
+    for line_result in reader.lines() {
+        let line = line_result?;
+
+        // Check if this line is a fence (```...).
         if line.trim().starts_with("```") {
-            // If we were already in a code block, this is the closing fence
             if in_code_block {
-                // If it was a Python block, format the collected lines
-                if is_python_block {
-                    // Format the python code block lines using `black`
-                    // 1) Write to a temp file
-                    let mut temp_file = tempfile::NamedTempFile::new()?;
-                    for code_line in &code_block_lines {
-                        writeln!(temp_file, "{}", code_line)?;
-                    }
-                    temp_file.flush()?;
-
-                    // 2) Run `black <tempfile>`
-                    let status = Command::new("black")
-                        .arg("--quiet")
-                        .arg(temp_file.path())
-                        .stdout(Stdio::null())
-                        .stderr(Stdio::null())
-                        .status();
-
-                    match status {
-                        Ok(s) if s.success() => {
-                            // 3) Read back the formatted code
-                            let formatted_code = fs::read_to_string(temp_file.path())?;
-
-                            // Replace the lines in `lines` between code_block_start_index and current
-                            let formatted_code_lines: Vec<&str> = formatted_code.lines().collect();
+                // This must be the closing fence.
+                // Attempt formatting if the block is recognized (Python/Rust).
+                if code_block_language != CodeLanguage::Unknown {
+                    match format_code_snippet(&code_block_lines, &code_block_language) {
+                        Ok(formatted_code_lines) => {
+                            // Remove the old, unformatted code lines from `lines`.
                             let block_len = code_block_lines.len();
+                            lines.drain(
+                                code_block_start_index..(code_block_start_index + block_len),
+                            );
 
-                            // Clear out the original unformatted lines
-                            lines.drain(code_block_start_index..(code_block_start_index + block_len));
-
-                            // Insert the newly formatted lines
+                            // Insert newly formatted lines in place.
                             for (i, formatted_line) in formatted_code_lines.iter().enumerate() {
-                                lines.insert(code_block_start_index + i, formatted_line.to_string());
+                                lines
+                                    .insert(code_block_start_index + i, formatted_line.to_string());
                             }
                         }
-                        Ok(_) => {
+                        Err(e) => {
                             eprintln!(
-                                "Warning: `black` exited with a non-zero status for {}",
-                                file_path
+                                "Warning: Could not format {:?} code block in {}:\n{}",
+                                code_block_language, file_path, e
                             );
                         }
-                        Err(e) => {
-                            eprintln!("Error running `black`: {}", e);
-                        }
                     }
-
-                    // Reset the temporary buffer
+                    // Reset the snippet buffer after we finish formatting.
                     code_block_lines.clear();
                 }
 
-                // Close code block
+                // End the code block.
                 in_code_block = false;
-                is_python_block = false;
+                code_block_language = CodeLanguage::Unknown;
             } else {
-                // Opening fence
+                // We are opening a new code block.
                 in_code_block = true;
-                code_block_start_index = lines.len() + 1; // +1 because this line hasn't been pushed yet
-                is_python_block =
-                    line.contains(".python") || line.contains("python") || line.contains(".py");
+                code_block_start_index = lines.len() + 1; // +1 because we haven't yet pushed the fence line.
+
+                // Detect language from the fence line.
+                code_block_language = detect_language_from_line(&line);
             }
 
-            // In all cases, add the fence line to `lines`
+            // Either way (open or close), push the fence line itself to `lines`.
             lines.push(line);
         } else if in_code_block {
-            // We are inside a code block
+            // We are in the middle of a code block. Accumulate the lines for possible formatting.
             code_block_lines.push(line.clone());
             lines.push(line);
         } else {
-            // Normal line outside code block
+            // Normal line (outside any code block).
             lines.push(line);
         }
     }
 
-    // Finally, overwrite the original file with the new lines
+    // Overwrite the original file with the updated lines.
     let mut output = File::create(&path)?;
     for line in &lines {
         writeln!(output, "{}", line)?;
     }
 
     Ok(())
+}
+
+/// A simple enum to track recognized languages.
+#[derive(Debug, PartialEq)]
+enum CodeLanguage {
+    Python,
+    Rust,
+    Unknown,
+}
+
+/// Checks the opening fence line for `.python`, `.rust`, etc.
+fn detect_language_from_line(line: &str) -> CodeLanguage {
+    let lower_line = line.to_lowercase();
+
+    if lower_line.contains(".python") || lower_line.contains("python") || lower_line.contains(".py")
+    {
+        CodeLanguage::Python
+    } else if lower_line.contains(".rust")
+        || lower_line.contains("rust")
+        || lower_line.contains(".rs")
+    {
+        CodeLanguage::Rust
+    } else {
+        CodeLanguage::Unknown
+    }
+}
+
+/// Formats the snippet in `code_lines` based on `lang`, returning the newly formatted lines.
+/// - Python => `black`
+/// - Rust => `rustfmt`
+/// If something goes wrong, it returns an error or simply logs a warning.
+fn format_code_snippet(code_lines: &[String], lang: &CodeLanguage) -> io::Result<Vec<String>> {
+    // If unknown, do nothing.
+    if *lang == CodeLanguage::Unknown {
+        return Ok(code_lines.to_vec());
+    }
+
+    // Decide which file extension we need.
+    let extension = match lang {
+        CodeLanguage::Python => "py",
+        CodeLanguage::Rust => "rs",
+        CodeLanguage::Unknown => unreachable!(), // we already handled Unknown above
+    };
+
+    // Create a temp file. We'll rename it to have the appropriate extension
+    // so that the formatter recognizes it properly.
+    let temp_file = NamedTempFile::new()?;
+    let temp_path = temp_file.path().with_extension(extension);
+
+    // The default `NamedTempFile` path has no extension, so we'll rename:
+    fs::rename(temp_file.path(), &temp_path)?;
+
+    // Write the code block lines to the temp file with extension.
+    {
+        let mut temp_file_with_ext = File::create(&temp_path)?;
+        for code_line in code_lines {
+            writeln!(temp_file_with_ext, "{}", code_line)?;
+        }
+        temp_file_with_ext.flush()?;
+    }
+
+    // Figure out which formatter and arguments to run.
+    let (formatter, args) = match lang {
+        CodeLanguage::Python => ("black", vec!["--quiet"]),
+        CodeLanguage::Rust => ("rustfmt", vec![]),
+        CodeLanguage::Unknown => unreachable!(),
+    };
+
+    // Run the formatter silently.
+    let status = Command::new(formatter)
+        .args(&args)
+        .arg(&temp_path)
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .status();
+
+    // If the formatter succeeded, read back the newly formatted code.
+    match status {
+        Ok(s) if s.success() => {
+            let formatted_code = fs::read_to_string(&temp_path)?;
+            let formatted_code_lines = formatted_code
+                .lines()
+                .map(|s| s.to_string())
+                .collect::<Vec<String>>();
+            Ok(formatted_code_lines)
+        }
+        Ok(_) => {
+            eprintln!(
+                "Warning: formatter exited with a non-zero status for {:?}",
+                lang
+            );
+            // Return the original code lines unmodified if there's a formatting error.
+            Ok(code_lines.to_vec())
+        }
+        Err(e) => {
+            eprintln!("Error running formatter for {:?}: {}", lang, e);
+            // Return the original snippet on error.
+            Ok(code_lines.to_vec())
+        }
+    }
 }

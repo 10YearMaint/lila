@@ -11,7 +11,10 @@ mod schema;
 mod utils;
 
 use commands::chat::ChatArgs;
-use commands::{auto::auto_format_code_in_markdown, chat::run_chat, extract::*, remove::*, save::*, translate::*, Args, Commands};
+use commands::{
+    auto::auto_format_code_in_markdown, chat::run_chat, extract::*, remove::*, save::*,
+    translate::*, Args, Commands,
+};
 
 use utils::{env::ensure_pandoc_installed, utils::process_protocol_aimm};
 
@@ -74,9 +77,10 @@ fn main() {
     match &args.command {
         // ------------------ Auto-Formatting Command ----------
         Commands::Auto { file } => {
-            match auto_format_code_in_markdown(file) {
-                Ok(_) => println!("Successfully auto-formatted Python code in {}", file),
-                Err(e) => eprintln!("Failed to auto-format code in {}: {}", file, e),
+            if let Err(e) = auto_format_code_in_markdown(file) {
+                eprintln!("Failed to auto-format code in {}: {}", file, e);
+            } else {
+                println!("Successfully formatted code in {}", file);
             }
         }
 
