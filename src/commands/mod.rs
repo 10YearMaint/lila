@@ -36,11 +36,15 @@ pub enum Commands {
         protocol: Option<String>,
     },
 
-    /// Auto-format Python code in the specified Markdown file(s) using `black`
+    /// Auto-format code blocks (Python, Rust, etc.) in a Markdown file *or* folder
     Auto {
-        /// The Markdown file to format
-        #[arg(short, long)]
-        file: String,
+        /// Specify a single Markdown file (conflicts with folder)
+        #[arg(short, long, conflicts_with = "folder")]
+        file: Option<String>,
+
+        /// Specify a folder containing Markdown files (conflicts with file)
+        #[arg(short, long, conflicts_with = "file")]
+        folder: Option<String>,
     },
 
     /// Translate Markdown files into HTML using Pandoc

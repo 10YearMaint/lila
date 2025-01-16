@@ -10,11 +10,9 @@ mod commands;
 mod schema;
 mod utils;
 
+use commands::auto::{auto_format_code_in_folder, auto_format_code_in_markdown};
 use commands::chat::ChatArgs;
-use commands::{
-    auto::auto_format_code_in_markdown, chat::run_chat, extract::*, remove::*, save::*,
-    translate::*, Args, Commands,
-};
+use commands::{chat::run_chat, extract::*, remove::*, save::*, translate::*, Args, Commands};
 
 use utils::{env::ensure_pandoc_installed, utils::process_protocol_aimm};
 
@@ -76,11 +74,20 @@ fn main() {
 
     match &args.command {
         // ------------------ Auto-Formatting Command ----------
-        Commands::Auto { file } => {
-            if let Err(e) = auto_format_code_in_markdown(file) {
-                eprintln!("Failed to auto-format code in {}: {}", file, e);
+        Commands::Auto { file, folder } => {
+            // Decide whether we’re formatting a single file or an entire folder:
+            if let Some(file) = file {
+                // Single file
+                if let Err(e) = auto_format_code_in_markdown(file) {
+                    eprintln!("Error auto-formatting file {}: {}", file, e);
+                }
+            } else if let Some(folder) = folder {
+                // Entire folder
+                if let Err(e) = auto_format_code_in_folder(folder) {
+                    eprintln!("Error auto-formatting folder {}: {}", folder, e);
+                }
             } else {
-                println!("Successfully formatted code in {}", file);
+                eprintln!("No file or folder provided for auto-formatting.");
             }
         }
 
