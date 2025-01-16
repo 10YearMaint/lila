@@ -4,6 +4,7 @@ pub mod models;
 pub mod remove;
 pub mod save;
 pub mod translate;
+pub mod auto;
 
 use clap::{Parser, Subcommand};
 
@@ -33,6 +34,13 @@ pub enum Commands {
         /// Optional: Specify a protocol (e.g., AImM) for special handling of extracted files
         #[arg(short, long)]
         protocol: Option<String>,
+    },
+
+    /// Auto-format Python code in the specified Markdown file(s) using `black`
+    Auto {
+        /// The Markdown file to format
+        #[arg(short, long)]
+        file: String,
     },
 
     /// Translate Markdown files into HTML using Pandoc
