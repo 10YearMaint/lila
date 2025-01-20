@@ -15,7 +15,6 @@ diesel = { version = "~2.2", features = ["sqlite"] }
 dirs = "~6.0"
 dotenvy = "~0.15"
 hf-hub = "~0.4"
-metal = { version = "~0.31", features = ["mps"] }
 pulldown-cmark = "~0.12"
 regex = "~1.11"
 serde = { version = "~1.0", features = ["derive"] }
@@ -30,3 +29,6 @@ walkdir = "~2.5"
 
 [target.x86_64-pc-windows-gnu]
 rustflags = ["-C", "target-feature=+crt-static"]
+
+[target.'cfg(target_os = "macos")'.dependencies]
+metal = { version = "~0.31", features = ["mps"] }
