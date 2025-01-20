@@ -4,8 +4,6 @@ version = "0.1.0"
 edition = "2021"
 build = "build.rs"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
 anyhow = "~1.0"
 candle-core = { git = "https://github.com/huggingface/candle.git", version = "~0.8" }
@@ -14,17 +12,17 @@ candle-transformers = { git = "https://github.com/huggingface/candle.git", versi
 clap = { version = "~4.5", features = ["derive"] }
 csv = "~1.3"
 diesel = { version = "~2.2", features = ["sqlite"] }
-dirs = "~5.0"
+dirs = "~6.0"
 dotenvy = "~0.15"
 hf-hub = "~0.4"
-metal = { version = "~0.27", features = ["mps"] }
-pulldown-cmark = "~0.11"
-regex = "~1.10"
+metal = { version = "~0.31", features = ["mps"] }
+pulldown-cmark = "~0.12"
+regex = "~1.11"
 serde = { version = "~1.0", features = ["derive"] }
 serde_json = "~1.0"
 serde_yaml = "~0.9"
 tempfile = "~3.15"
-tokenizers = { version = "~0.19", default-features = true }
+tokenizers = { version = "~0.21", default-features = true }
 tracing = "~0.1"
 tracing-chrome = "~0.7"
 tracing-subscriber = "~0.3"
