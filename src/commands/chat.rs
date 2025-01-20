@@ -1,6 +1,5 @@
 use anyhow::{Error, Result};
-use candle_core::{DType, Device, IndexOp, Tensor};
-use candle_nn::VarBuilder;
+use candle_core::{DType, Device, Tensor};
 use candle_transformers::generation::LogitsProcessor;
 use hf_hub::{api::sync::Api, Repo, RepoType};
 use tokenizers::Tokenizer;
@@ -36,45 +35,6 @@ pub fn device(cpu: bool) -> Result<Device> {
     }
 }
 
-/// Loads the safetensors files for a model from the hub based on a json index file.
-pub fn hub_load_safetensors(
-    repo: &hf_hub::api::sync::ApiRepo,
-    json_file: &str,
-) -> Result<Vec<std::path::PathBuf>> {
-    use anyhow::{anyhow, bail, Context}; // Bring these into scope if not already.
-
-    let json_file = repo
-        .get(json_file)
-        .map_err(|e| anyhow!("cannot retrieve JSON index {json_file:?}: {e}"))?;
-    let json_file = std::fs::File::open(json_file).context("cannot open JSON index file")?;
-    let json: serde_json::Value =
-        serde_json::from_reader(&json_file).context("failed to parse JSON index file")?;
-
-    let weight_map = match json.get("weight_map") {
-        None => bail!("no weight map in JSON file"),
-        Some(serde_json::Value::Object(map)) => map,
-        Some(_) => bail!("weight_map is not a map"),
-    };
-
-    let mut safetensors_files = std::collections::HashSet::new();
-    for value in weight_map.values() {
-        if let Some(file) = value.as_str() {
-            safetensors_files.insert(file.to_string());
-        }
-    }
-
-    // Here is where we unify the error type by mapping candle_core::Error into anyhow::Error.
-    let safetensors_files = safetensors_files
-        .iter()
-        .map(|filename| {
-            repo.get(filename)
-                .map_err(|err| anyhow!("unable to retrieve file {filename:?}: {err}"))
-        })
-        .collect::<Result<Vec<_>>>()?;
-
-    Ok(safetensors_files)
-}
-
 /// This is a wrapper around a tokenizer to ensure that tokens can be returned to the user in a
 /// streaming way rather than having to wait for the full decoding.
 pub struct TokenOutputStream {
@@ -92,10 +52,6 @@ impl TokenOutputStream {
             prev_index: 0,
             current_index: 0,
         }
-    }
-
-    pub fn into_inner(self) -> tokenizers::Tokenizer {
-        self.tokenizer
     }
 
     fn decode(&self, tokens: &[u32]) -> Result<String> {
@@ -141,22 +97,12 @@ impl TokenOutputStream {
         }
     }
 
-    pub fn decode_all(&self) -> Result<String> {
-        self.decode(&self.tokens)
-    }
-
     pub fn get_token(&self, token_s: &str) -> Option<u32> {
         self.tokenizer.get_vocab(true).get(token_s).copied()
     }
 
     pub fn tokenizer(&self) -> &tokenizers::Tokenizer {
         &self.tokenizer
-    }
-
-    pub fn clear(&mut self) {
-        self.tokens.clear();
-        self.prev_index = 0;
-        self.current_index = 0;
     }
 }
 
@@ -227,7 +173,7 @@ impl TextGeneration {
 
         std::io::stdout().flush()?;
         let start_gen = std::time::Instant::now();
-        let mut pos = 0;
+        let mut _pos = 0;
         for index in 0..sample_len {
             let context_size = if index > 0 { 1 } else { tokens.len() };
             let ctxt = &tokens[tokens.len().saturating_sub(context_size)..];
@@ -262,7 +208,7 @@ impl TextGeneration {
                 print!("{t}");
                 std::io::stdout().flush()?;
             }
-            pos += context_size;
+            _pos += context_size;
         }
         let dt = start_gen.elapsed();
         println!(
