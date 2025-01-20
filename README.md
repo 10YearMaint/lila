@@ -129,6 +129,13 @@ diesel migration run
 
 Simply add *wine* in front of the normal command.
 
+### Find Outdated Packages
+
+```bash
+cargo install cargo-outdated
+cargo outdated
+```
+
 ### Auto Code Formatter
 
 Don't forget to code format the rust code using
