@@ -1,4 +1,4 @@
-use anyhow::{Error as E, Result};
+use anyhow::{Error, Result};
 use candle_core::{DType, Device, IndexOp, Tensor};
 use candle_nn::VarBuilder;
 use candle_transformers::generation::LogitsProcessor;
@@ -10,8 +10,6 @@ use tracing_subscriber::prelude::*;
 use candle_transformers::models::mixformer::{
     Config as MixConfig, MixFormerSequentialForCausalLM as MixFormer,
 };
-use candle_transformers::models::phi::{Config as PhiConfig, Model as Phi};
-use candle_transformers::models::phi3::{Config as Phi3Config, Model as Phi3};
 use candle_transformers::models::quantized_mixformer::MixFormerSequentialForCausalLM as QMixFormer;
 
 use candle_core::utils::{cuda_is_available, metal_is_available};
@@ -164,8 +162,6 @@ impl TokenOutputStream {
 
 enum Model {
     MixFormer(MixFormer),
-    Phi(Phi),
-    Phi3(Phi3),
     Quantized(QMixFormer),
 }
 
@@ -212,7 +208,7 @@ impl TextGeneration {
             .tokenizer
             .tokenizer()
             .encode(prompt, true)
-            .map_err(E::msg)?;
+            .map_err(Error::msg)?;
         if tokens.is_empty() {
             anyhow::bail!("Empty prompts are not supported in the phi model.")
         }
@@ -228,7 +224,7 @@ impl TextGeneration {
             Some(token) => token,
             None => anyhow::bail!("cannot find the endoftext token"),
         };
-        print!("{prompt}");
+
         std::io::stdout().flush()?;
         let start_gen = std::time::Instant::now();
         let mut pos = 0;
@@ -238,8 +234,6 @@ impl TextGeneration {
             let input = Tensor::new(ctxt, &self.device)?.unsqueeze(0)?;
             let logits = match &mut self.model {
                 Model::MixFormer(m) => m.forward(&input)?,
-                Model::Phi(m) => m.forward(&input)?,
-                Model::Phi3(m) => m.forward(&input, pos)?.i((.., 0, ..))?,
                 Model::Quantized(m) => m.forward(&input)?,
             };
             let logits = logits.squeeze(0)?.to_dtype(DType::F32)?;
@@ -330,34 +324,13 @@ pub fn run_chat(args: ChatArgs) -> Result<()> {
     // Example: figure out model_id
     let model_id = match args.model_id {
         Some(m) => m,
-        None => {
-            // fallback logic - you can customize as needed
-            if args.quantized {
-                "lmz/candle-quantized-phi".to_string()
-            } else {
-                match args.model.as_str() {
-                    "1" => "microsoft/phi-1".to_string(),
-                    "1.5" => "microsoft/phi-1_5".to_string(),
-                    "2" => "microsoft/phi-2".to_string(),
-                    "3" => "microsoft/Phi-3-mini-4k-instruct".to_string(),
-                    // fallback
-                    _ => "microsoft/phi-2".to_string(),
-                }
-            }
-        }
+        None => "lmz/candle-quantized-phi".to_string(),
     };
 
     // Similarly for revision
     let revision = match args.revision {
         Some(r) => r,
-        None => {
-            if args.quantized {
-                "main".to_string()
-            } else {
-                // example fallback
-                "refs/pr/8".to_string()
-            }
-        }
+        None => "main".to_string(),
     };
 
     // Build the repo reference with HF Hub
@@ -378,18 +351,12 @@ pub fn run_chat(args: ChatArgs) -> Result<()> {
     let filenames = match args.weight_file {
         Some(weight_file) => vec![std::path::PathBuf::from(weight_file)],
         None => {
-            if args.quantized {
-                // example fallback for quantized
-                vec![repo.get("model-v2-q4k.gguf")?]
-            } else {
-                // example fallback for safetensors
-                hub_load_safetensors(&repo, "model.safetensors.index.json")?
-            }
+            vec![repo.get("model-v2-q4k.gguf")?]
         }
     };
 
     println!("Retrieved all necessary files in {:?}", start.elapsed());
-    let tokenizer = Tokenizer::from_file(tokenizer_filename).map_err(E::msg)?;
+    let tokenizer = Tokenizer::from_file(tokenizer_filename).map_err(Error::msg)?;
 
     // Load the model
     let start = std::time::Instant::now();
@@ -400,28 +367,13 @@ pub fn run_chat(args: ChatArgs) -> Result<()> {
 
     let device = device(args.cpu)?;
 
-    // Decide if we use quantized or normal
-    let model = if args.quantized {
-        // Use quantized var builder
-        let vb = candle_transformers::quantized_var_builder::VarBuilder::from_gguf(
-            &filenames[0],
-            &device,
-        )?;
-        // Example for MixFormer v2
-        let mixformer = QMixFormer::new_v2(&config, vb)?;
-        Model::Quantized(mixformer)
-    } else {
-        // Possibly parse dtype from string, or just default to F32
-        let dtype = match &args.dtype {
-            Some(dtype_str) => dtype_str.parse::<DType>()?,
-            None => DType::F32,
-        };
-        let vb = unsafe { VarBuilder::from_mmaped_safetensors(&filenames, dtype, &device)? };
-        // Example building a “Phi3” or “MixFormer” depending on your `args.model`
-        // For demonstration, we’re just building MixFormer v2
-        let mixformer = MixFormer::new_v2(&config, vb)?;
-        Model::MixFormer(mixformer)
-    };
+    // Use quantized var builder
+    let vb =
+        candle_transformers::quantized_var_builder::VarBuilder::from_gguf(&filenames[0], &device)?;
+    // Example for MixFormer v2
+    let mixformer = QMixFormer::new_v2(&config, vb)?;
+    let model = Model::Quantized(mixformer);
+
     println!("Loaded the model in {:?}", start.elapsed());
 
     // If you have more logic for MMLU or anything else, you can replicate it here.
