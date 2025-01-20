@@ -14,7 +14,154 @@ use candle_transformers::models::phi::{Config as PhiConfig, Model as Phi};
 use candle_transformers::models::phi3::{Config as Phi3Config, Model as Phi3};
 use candle_transformers::models::quantized_mixformer::MixFormerSequentialForCausalLM as QMixFormer;
 
-// Example Model enum from your snippet
+use candle_core::utils::{cuda_is_available, metal_is_available};
+
+pub fn device(cpu: bool) -> Result<Device> {
+    if cpu {
+        Ok(Device::Cpu)
+    } else if cuda_is_available() {
+        Ok(Device::new_cuda(0)?)
+    } else if metal_is_available() {
+        Ok(Device::new_metal(0)?)
+    } else {
+        #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+        {
+            println!(
+                "Running on CPU, to run on GPU(metal), build this example with `--features metal`"
+            );
+        }
+        #[cfg(not(all(target_os = "macos", target_arch = "aarch64")))]
+        {
+            println!("Running on CPU, to run on GPU, build this example with `--features cuda`");
+        }
+        Ok(Device::Cpu)
+    }
+}
+
+/// Loads the safetensors files for a model from the hub based on a json index file.
+pub fn hub_load_safetensors(
+    repo: &hf_hub::api::sync::ApiRepo,
+    json_file: &str,
+) -> Result<Vec<std::path::PathBuf>> {
+    use anyhow::{anyhow, bail, Context}; // Bring these into scope if not already.
+
+    let json_file = repo
+        .get(json_file)
+        .map_err(|e| anyhow!("cannot retrieve JSON index {json_file:?}: {e}"))?;
+    let json_file = std::fs::File::open(json_file).context("cannot open JSON index file")?;
+    let json: serde_json::Value =
+        serde_json::from_reader(&json_file).context("failed to parse JSON index file")?;
+
+    let weight_map = match json.get("weight_map") {
+        None => bail!("no weight map in JSON file"),
+        Some(serde_json::Value::Object(map)) => map,
+        Some(_) => bail!("weight_map is not a map"),
+    };
+
+    let mut safetensors_files = std::collections::HashSet::new();
+    for value in weight_map.values() {
+        if let Some(file) = value.as_str() {
+            safetensors_files.insert(file.to_string());
+        }
+    }
+
+    // Here is where we unify the error type by mapping candle_core::Error into anyhow::Error.
+    let safetensors_files = safetensors_files
+        .iter()
+        .map(|filename| {
+            repo.get(filename)
+                .map_err(|err| anyhow!("unable to retrieve file {filename:?}: {err}"))
+        })
+        .collect::<Result<Vec<_>>>()?;
+
+    Ok(safetensors_files)
+}
+
+/// This is a wrapper around a tokenizer to ensure that tokens can be returned to the user in a
+/// streaming way rather than having to wait for the full decoding.
+pub struct TokenOutputStream {
+    tokenizer: tokenizers::Tokenizer,
+    tokens: Vec<u32>,
+    prev_index: usize,
+    current_index: usize,
+}
+
+impl TokenOutputStream {
+    pub fn new(tokenizer: tokenizers::Tokenizer) -> Self {
+        Self {
+            tokenizer,
+            tokens: Vec::new(),
+            prev_index: 0,
+            current_index: 0,
+        }
+    }
+
+    pub fn into_inner(self) -> tokenizers::Tokenizer {
+        self.tokenizer
+    }
+
+    fn decode(&self, tokens: &[u32]) -> Result<String> {
+        match self.tokenizer.decode(tokens, true) {
+            Ok(str) => Ok(str),
+            Err(err) => anyhow::bail!("cannot decode: {err}"),
+        }
+    }
+
+    // https://github.com/huggingface/text-generation-inference/blob/5ba53d44a18983a4de32d122f4cb46f4a17d9ef6/server/text_generation_server/models/model.py#L68
+    pub fn next_token(&mut self, token: u32) -> Result<Option<String>> {
+        let prev_text = if self.tokens.is_empty() {
+            String::new()
+        } else {
+            let tokens = &self.tokens[self.prev_index..self.current_index];
+            self.decode(tokens)?
+        };
+        self.tokens.push(token);
+        let text = self.decode(&self.tokens[self.prev_index..])?;
+        if text.len() > prev_text.len() && text.chars().last().unwrap().is_alphanumeric() {
+            let text = text.split_at(prev_text.len());
+            self.prev_index = self.current_index;
+            self.current_index = self.tokens.len();
+            Ok(Some(text.1.to_string()))
+        } else {
+            Ok(None)
+        }
+    }
+
+    pub fn decode_rest(&self) -> Result<Option<String>> {
+        let prev_text = if self.tokens.is_empty() {
+            String::new()
+        } else {
+            let tokens = &self.tokens[self.prev_index..self.current_index];
+            self.decode(tokens)?
+        };
+        let text = self.decode(&self.tokens[self.prev_index..])?;
+        if text.len() > prev_text.len() {
+            let text = text.split_at(prev_text.len());
+            Ok(Some(text.1.to_string()))
+        } else {
+            Ok(None)
+        }
+    }
+
+    pub fn decode_all(&self) -> Result<String> {
+        self.decode(&self.tokens)
+    }
+
+    pub fn get_token(&self, token_s: &str) -> Option<u32> {
+        self.tokenizer.get_vocab(true).get(token_s).copied()
+    }
+
+    pub fn tokenizer(&self) -> &tokenizers::Tokenizer {
+        &self.tokenizer
+    }
+
+    pub fn clear(&mut self) {
+        self.tokens.clear();
+        self.prev_index = 0;
+        self.current_index = 0;
+    }
+}
+
 enum Model {
     MixFormer(MixFormer),
     Phi(Phi),
@@ -26,7 +173,7 @@ enum Model {
 struct TextGeneration {
     model: Model,
     device: Device,
-    tokenizer: candle_examples::token_output_stream::TokenOutputStream,
+    tokenizer: TokenOutputStream,
     logits_processor: LogitsProcessor,
     repeat_penalty: f32,
     repeat_last_n: usize,
@@ -49,7 +196,7 @@ impl TextGeneration {
         let logits_processor = LogitsProcessor::new(seed, temp, top_p);
         Self {
             model,
-            tokenizer: candle_examples::token_output_stream::TokenOutputStream::new(tokenizer),
+            tokenizer: TokenOutputStream::new(tokenizer),
             logits_processor,
             repeat_penalty,
             repeat_last_n,
@@ -236,7 +383,7 @@ pub fn run_chat(args: ChatArgs) -> Result<()> {
                 vec![repo.get("model-v2-q4k.gguf")?]
             } else {
                 // example fallback for safetensors
-                candle_examples::hub_load_safetensors(&repo, "model.safetensors.index.json")?
+                hub_load_safetensors(&repo, "model.safetensors.index.json")?
             }
         }
     };
@@ -251,7 +398,7 @@ pub fn run_chat(args: ChatArgs) -> Result<()> {
     // If you want to parse a config file, do that here with e.g. `repo.get("config.json")?`
     let config = MixConfig::v2();
 
-    let device = candle_examples::device(args.cpu)?;
+    let device = device(args.cpu)?;
 
     // Decide if we use quantized or normal
     let model = if args.quantized {
