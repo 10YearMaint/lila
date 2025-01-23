@@ -9,7 +9,7 @@ pub mod translate;
 use clap::{Parser, Subcommand};
 
 #[derive(Parser, Debug)]
-#[command(version, about = "Leli: A CLI tool for code extraction, markdown2html translation, and saving metadata.", long_about = None)]
+#[command(version, about = "lila: A CLI tool for code extraction, markdown2html translation, and saving metadata.", long_about = None)]
 pub struct Args {
     #[command(subcommand)]
     pub command: Commands,
@@ -53,7 +53,7 @@ pub enum Commands {
         #[arg(short, long)]
         folder: String,
 
-        /// Optional: Output folder for translated files (default: ~/.leli/<project_name>/doc)
+        /// Optional: Output folder for translated files (default: ~/.lila/<project_name>/doc)
         #[arg(short, long)]
         output: Option<String>,
 
@@ -72,18 +72,18 @@ pub enum Commands {
 
     /// Save the extracted code and HTML metadata into a SQLite database
     Save {
-        /// Optional: Path to the SQLite database (default: <doc_pure>/leli.db)
+        /// Optional: Path to the SQLite database (default: <doc_pure>/lila.db)
         #[arg(short, long)]
         db: Option<String>,
     },
 
     /// Remove files created by `extract` and `translate`. Use `-a` to remove all output folders.
     Rm {
-        /// Remove all files from the output folder, including other projects in .leli
+        /// Remove all files from the output folder, including other projects in .lila
         #[arg(short, long)]
         all: bool,
 
-        /// Output folder to remove (default: ~/.leli/<project_name>)
+        /// Output folder to remove (default: ~/.lila/<project_name>)
         #[arg(short, long)]
         output: Option<String>,
     },

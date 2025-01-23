@@ -1,4 +1,4 @@
-# leli
+# lila
 
 ## Background
 
@@ -12,13 +12,14 @@ Picture a specialized AI “literate” that holds the entire project in its mem
 
 ## Technical
 
-What is **leli**? **leli** stands for "**le**gacy **li**terate".
+What is **lila**? **lila** stands for "**Li**terate **L**egacy **A**ssistant".
+
 Its designed primarily to empower the use of the *AImM* (AI-maintained Microservices) architecture.
-**leli** prepares everything so that an AI can maintain and inspect compliant codebases by reading their HTML output files.
+**lila** prepares everything so that an AI can maintain and inspect compliant codebases by reading their HTML output files.
 
-Using **leli** is about coding with the end in mind: envisioning that your project will someday be a legacy project, which you yourself will not maintain anymore. But you want to ensure that the AI can maintain, explain, and customize it, understanding your literate words and thoughts behind it.
+Using **lila** is about coding with the end in mind: envisioning that your project will someday be a legacy project, which you yourself will not maintain anymore. But you want to ensure that the AI can maintain, explain, and customize it, understanding your literate words and thoughts behind it.
 
-And not only that, you also want to ensure that you in a couple of months or a new developer to your project can easily find where the functionality of each of the UI screen of your app got defined. No endless searching through the codebase. Every coder normally developes in its own way and finds some convention more naturally than others. This is ok as everyone has a different concept of its software craftmanship. In fact, this is what makes us human. Using **leli**, this doesn't matter anymore because you document your UI screens using literate programming, that get intrinsically linked to the UI screens. Each new developer can easily get the starting-point for implementing or adapting something in the UI screen! This is the concept of *Locality of Behaviour*.
+And not only that, you also want to ensure that you in a couple of months or a new developer to your project can easily find where the functionality of each of the UI screen of your app got defined. No endless searching through the codebase. Every coder normally developes in its own way and finds some convention more naturally than others. This is ok as everyone has a different concept of its software craftmanship. In fact, this is what makes us human. Using **lila**, this doesn't matter anymore because you document your UI screens using literate programming, that get intrinsically linked to the UI screens. Each new developer can easily get the starting-point for implementing or adapting something in the UI screen! This is the concept of *Locality of Behaviour*.
 
 ## Installation
 
@@ -42,7 +43,7 @@ powershell -c "irm https://github.com/diesel-rs/diesel/releases/download/v2.2.1/
 
 And please also install "Pandoc"
 
-### Make *leli* available globally
+### Make *lila* available globally
 
 If you are on a Unix-like system, you can use the following command:
 
@@ -55,28 +56,28 @@ rustc install.rs && ./install
 ### Extract Literate Code into normal Source Code
 
 ```bash
-./target/release/leli extract --file example/math_operations.md
+./target/release/lila extract --file example/math_operations.md
 ```
 
 or for a complete folder
 
 ```bash
-./target/release/leli extract --folder example
+./target/release/lila extract --folder example
 ```
 
 If you code using the AImM protocol you should use the following command:
 
 ```bash
-./target/release/leli extract --folder example --protocol AImM
+./target/release/lila extract --folder example --protocol AImM
 ```
 
 ### Auto Code Format Original Literate Code
 
-*leli* has the functionality to auto code format literated code and insert it back into its original markdown file inplace.
+*lila* has the functionality to auto code format literated code and insert it back into its original markdown file inplace.
 For this use the following command logic:
 
 ```
-./target/release/leli auto --folder example
+./target/release/lila auto --folder example
 ```
 
 ### Markdown to HTML Translator
@@ -84,8 +85,8 @@ For this use the following command logic:
 If you want to create HTML files from the markdown files, you can use the following command:
 
 ```bash
-./target/release/leli translate --folder example --css src/css/style.css --mermaid src/js/mermaid.min.js
-./target/release/leli translate --folder example --css src/css/style.css --disable-mermaid
+./target/release/lila translate --folder example --css src/css/style.css --mermaid src/js/mermaid.min.js
+./target/release/lila translate --folder example --css src/css/style.css --disable-mermaid
 ```
 
 If you don't specify a CSS file, the default CSS of src/css/style.css will be used.
@@ -95,30 +96,30 @@ If you don't specify a CSS file, the default CSS of src/css/style.css will be us
 If you want to save the meta data of the generated HTML files to a SQLite database, you can use the following command:
 
 ```bash
-./target/release/leli save --db mydatabase.sqlite
+./target/release/lila save --db mydatabase.sqlite
 ```
 
 or
 
 ```bash
-./target/release/leli save --db mydatabase.db
-./target/release/leli save
+./target/release/lila save --db mydatabase.db
+./target/release/lila save
 ```
 
 ### Chat2CodeLiterat (beta)
 
 ```bash
-leli chat --model 2 \
+./target/release/lila  chat --model 2 \
     --prompt "Can you understand HTML code? Can you provide me an example code? With a button? And if I click the button every time, a counter gets increased?.\nAnswer:" --quantized
 ```
 
 
 ## Development
 
-If you develop on a macOS, please use **leli** for Windows cross-compilation using [wine](https://formulae.brew.sh/cask/wine-stable) like this:
+If you develop on a macOS, please use **lila** for Windows cross-compilation using [wine](https://formulae.brew.sh/cask/wine-stable) like this:
 
 ```bash
-wine windows/leli.exe extract --folder example --protocol AImM
+wine windows/lila.exe extract --folder example --protocol AImM
 ```
 
 Update schema.rs using

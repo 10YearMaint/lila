@@ -26,7 +26,7 @@ fn update_dotenv(root_folder: &Path) -> io::Result<()> {
     // If .env doesn't exist, create it
     if !dotenv_path.exists() {
         let mut file = File::create(dotenv_path)?;
-        writeln!(file, "# Leli environment settings")?;
+        writeln!(file, "# lila environment settings")?;
         writeln!(file, "{}", line_to_write)?;
         return Ok(());
     }
@@ -45,7 +45,7 @@ fn update_dotenv(root_folder: &Path) -> io::Result<()> {
     }
 
     if !found {
-        lines.push("# Leli environment settings (appended)");
+        lines.push("# lila environment settings (appended)");
         lines.push(&line_to_write);
     }
 
@@ -61,16 +61,16 @@ fn update_dotenv(root_folder: &Path) -> io::Result<()> {
 fn main() {
     let args = Args::parse();
 
-    // Default root folder => ~/.leli/<project_name>
+    // Default root folder => ~/.lila/<project_name>
     let home = home_dir().expect("Could not determine the home directory");
-    let leli_root = home.join(".leli");
+    let lila_root = home.join(".lila");
     let current_dir = env::current_dir().expect("Failed to get current directory");
     let project_name = current_dir
         .file_name()
         .unwrap_or_else(|| OsStr::new("default"))
         .to_string_lossy()
         .to_string();
-    let default_root = leli_root.join(&project_name);
+    let default_root = lila_root.join(&project_name);
 
     match &args.command {
         // ------------------ Auto-Formatting Command ----------
@@ -244,7 +244,7 @@ fn main() {
             let db_path = db
                 .as_ref()
                 .map(PathBuf::from)
-                .unwrap_or_else(|| doc_pure_folder.join("leli.db"));
+                .unwrap_or_else(|| doc_pure_folder.join("lila.db"));
 
             // Ensure the parent directory of the database exists
             if let Some(parent) = db_path.parent() {
