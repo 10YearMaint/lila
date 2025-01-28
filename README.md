@@ -114,6 +114,13 @@ or
 ```
 
 
+#### model_id
+
+Battle Tested SLM Models to run On-Premise：
+
+⭐ [microsoft/Phi-3.5-mini-instruct](https://huggingface.co/microsoft/Phi-3.5-mini-instruct)
+
+
 ## Development
 
 If you develop on a macOS, please use **lila** for Windows cross-compilation using [wine](https://formulae.brew.sh/cask/wine-stable) like this:
