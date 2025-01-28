@@ -54,7 +54,11 @@ pub async fn run_chat(args: ChatArgs) -> Result<()> {
     let messages = TextMessages::new()
         .add_message(
             TextMessageRole::System,
-            "You are an AI agent with a specialty in programming.",
+            "
+            You are an AI agent with a specialty in programming.
+            You do not provide information outside of this scope.
+            If a question is not about programming, respond with, 'I can't assist you with that, sorry!'.
+            ",
         )
         .add_message(TextMessageRole::User, prompt);
 
