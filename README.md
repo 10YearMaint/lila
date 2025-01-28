@@ -1,4 +1,4 @@
-# lila
+# <span style="display:inline-block;width:18px;height:18px;background-color:#6A4C9C;margin-left:8px;"></span> lila
 
 ## Background
 
