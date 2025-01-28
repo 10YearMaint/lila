@@ -109,8 +109,8 @@ or
 ### Chat2CodeLiterat (beta)
 
 ```bash
-./target/release/lila  chat --model 2 \
-    --prompt "Can you understand HTML code? Can you provide me an example code? With a button? And if I click the button every time, a counter gets increased?.\nAnswer:" --quantized
+./target/release/lila chat \
+    --prompt "Can you understand HTML code? Can you provide me an example code? With a button? And if I click the button every time, a counter gets increased by the number 2?"
 ```
 
 
