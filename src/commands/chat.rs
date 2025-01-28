@@ -70,15 +70,7 @@ fn load_all_html_data() -> Result<Vec<(String, String)>, DieselError> {
 #[tokio::main]
 pub async fn run_chat(args: ChatArgs) -> Result<()> {
     let data = match load_all_html_data() {
-        Ok(data) => {
-            for (file_path, content) in &data {
-                println!(
-                    "=== From DB ===\nFile Path: {}\nContent:\n{}\n",
-                    file_path, content
-                );
-            }
-            data
-        }
+        Ok(data) => data,
         Err(e) => {
             eprintln!("Failed to load HTML data: {:?}", e);
             return Err(e.into());
