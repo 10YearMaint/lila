@@ -113,12 +113,22 @@ or
     --prompt "Can you understand HTML code? Can you provide me an example code? With a button? And if I click the button every time, a counter gets increased by the number 2?"
 ```
 
+```bash
+./target/release/lila chat \
+    --prompt "Can you say what the HTML code is about that you have got provided ?"
+```
+
 
 #### model_id
 
 Battle Tested SLM Models to run On-Premise：
 
 ⭐ [microsoft/Phi-3.5-mini-instruct](https://huggingface.co/microsoft/Phi-3.5-mini-instruct)
+
+
+Not yet tested:
+
+[deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B](https://huggingface.co/deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B)
 
 
 ## Development
