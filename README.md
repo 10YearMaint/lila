@@ -10,16 +10,17 @@ But if time flows ever onward, I wonder if **AI** can be a surrogate for our ori
 
 Picture a specialized AI “literate” that holds the entire project in its memory. It knows exactly where each UI component was implemented, how specific logic is structured, and how to adapt it all while respecting the intent of the original developer. Through such capabilities, code gets “**lebendig konserviert**”—preserved in a living state—waiting for a future purpose. Your thoughts and insights stay alive, ready to be revisited or expanded upon whenever the need arises. Perhaps it’s time we saw software as an **endless book**, authored by countless minds, never truly finished. In other words, let us become coding literates—developers who treat code with the same creativity and respect we give to literature.
 
-## Technical
 
-What is **lila**? **lila** stands for "**Li**terate **L**egacy **A**ssistant".
+## Pre-Requirements:
 
-Its designed primarily to empower the use of the *AImM* (AI-maintained Microservices) architecture.
-**lila** prepares everything so that an AI can maintain and inspect compliant codebases by reading their HTML output files.
+1. Create a free account at https://huggingface.co to download and access their model ecosystem.
+2. Create an Access Token on the HuggingFace webpage. Store it in the .env file of this lila project like this: HUGGINGFACEHUB_API_TOKEN=SecretKey
+3. Install *Pandoc*
+4. Install the Command-line tool for Rust ORM *Diesel* on your system and run
+```bash
+diesel migration run
+```
 
-Using **lila** is about coding with the end in mind: envisioning that your project will someday be a legacy project, which you yourself will not maintain anymore. But you want to ensure that the AI can maintain, explain, and customize it, understanding your literate words and thoughts behind it.
-
-And not only that, you also want to ensure that you in a couple of months or a new developer to your project can easily find where the functionality of each of the UI screen of your app got defined. No endless searching through the codebase. Every coder normally developes in its own way and finds some convention more naturally than others. This is ok as everyone has a different concept of its software craftmanship. In fact, this is what makes us human. Using **lila**, this doesn't matter anymore because you document your UI screens using literate programming, that get intrinsically linked to the UI screens. Each new developer can easily get the starting-point for implementing or adapting something in the UI screen! This is the concept of *Locality of Behaviour*.
 
 ## Installation
 
@@ -29,19 +30,6 @@ Compile the project using the following command:
 cargo build --release
 ```
 
-or if you are on a Windows machine:
-
-```bash
-cargo build --release --target x86_64-pc-windows-gnu
-```
-
-If you are on a Windows machine please also install "Diesel" using the following command:
-
-```bash
-powershell -c "irm https://github.com/diesel-rs/diesel/releases/download/v2.2.1/diesel_cli-installer.ps1 | iex"
-```
-
-And please also install "Pandoc"
 
 ### Make *lila* available globally
 
@@ -53,7 +41,16 @@ rustc install.rs && ./install
 
 ## Usage
 
-### Extract Literate Code into normal Source Code
+You just want to chat with your literate code? Use this shortcut to get started:
+
+```bash
+lila translate --folder example --css src/css/style.css --disable-mermaid
+lila save
+lila chat \
+    --prompt "I know you got provided some HTML code. Can you say whats happening there? By which factor does the counter gets increased by?"
+```
+
+### 1. Extract Literate Code into normal Source Code
 
 ```bash
 ./target/release/lila extract --file example/math_operations.md
@@ -62,64 +59,53 @@ rustc install.rs && ./install
 or for a complete folder
 
 ```bash
-./target/release/lila extract --folder example
+lila extract --folder example
 ```
 
-If you code using the AImM protocol you should use the following command:
+If you code using the *AImM* protocol you should use the following command:
 
 ```bash
-./target/release/lila extract --folder example --protocol AImM
+lila extract --folder example --protocol AImM
 ```
 
-### Auto Code Format Original Literate Code
+### 2. Auto Code Format Original Literate Code
 
 *lila* has the functionality to auto code format literated code and insert it back into its original markdown file inplace.
 For this use the following command logic:
 
 ```
-./target/release/lila auto --folder example
+lila auto --folder example
 ```
 
-### Markdown to HTML Translator
+### 3. Markdown to HTML Translator
 
 If you want to create HTML files from the markdown files, you can use the following command:
 
 ```bash
-./target/release/lila translate --folder example --css src/css/style.css --mermaid src/js/mermaid.min.js
-./target/release/lila translate --folder example --css src/css/style.css --disable-mermaid
+lila translate --folder example --css src/css/style.css --mermaid src/js/mermaid.min.js
+lila translate --folder example --css src/css/style.css --disable-mermaid
 ```
 
 If you don't specify a CSS file, the default CSS of src/css/style.css will be used.
 
-### Save HTML files in a Database
+### 4. Save HTML files in a Database
 
 If you want to save the meta data of the generated HTML files to a SQLite database, you can use the following command:
 
 ```bash
-./target/release/lila save --db mydatabase.sqlite
+lila save
 ```
 
-or
+### 5. Chat2CodeLiterat functionality
 
 ```bash
-./target/release/lila save --db mydatabase.db
-./target/release/lila save
-```
-
-### Chat2CodeLiterat (beta)
-
-```bash
-./target/release/lila chat \
-    --prompt "Can you understand HTML code? Can you provide me an example code? With a button? And if I click the button every time, a counter gets increased by the number 2?"
-```
-
-```bash
-./target/release/lila chat \
-    --prompt "Can you say what the HTML code is about that you have got provided ?"
+lila chat \
+    --prompt "Can you understand HTML code? Can you provide me an example code? With a button? And if I click the button every time, a counter gets increased by the number 2? Can you also add some css design within the HTML code?"
 ```
 
 
-#### model_id
+
+#### model-id
 
 Battle Tested SLM Models to run On-Premise：
 
@@ -131,21 +117,13 @@ Not yet tested:
 [deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B](https://huggingface.co/deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B)
 
 
-## Development
-
-If you develop on a macOS, please use **lila** for Windows cross-compilation using [wine](https://formulae.brew.sh/cask/wine-stable) like this:
-
-```bash
-wine windows/lila.exe extract --folder example --protocol AImM
-```
+## Development Reminder
 
 Update schema.rs using
 
 ```bash
 diesel migration run
 ```
-
-Simply add *wine* in front of the normal command.
 
 ### Find Outdated Packages
 
@@ -161,3 +139,13 @@ Don't forget to code format the rust code using
 ```bash
 cargo fmt
 ```
+
+
+## Q&A
+
+Q: What is **lila**?
+
+A: **lila** stands for "**Li**terate **L**egacy **A**ssistant". Its designed primarily to empower the use of the *AImM* (AI-maintained Microservices) architecture.
+Using **lila** is about coding with the end in mind: envisioning that your project will someday be a legacy project, which you yourself will not maintain anymore. But you want to ensure that the AI can maintain, explain, and customize it, understanding your literate words and thoughts behind it.
+
+And not only that, you also want to ensure that you in a couple of months or a new developer to your project can easily find where the functionality of each of the UI screen of your app got defined. No endless searching through the codebase. Every coder normally developes in its own way and finds some convention more naturally than others. This is ok as everyone has a different concept of its software craftmanship. In fact, this is what makes us human. Using **lila**, this doesn't matter anymore because you document your UI screens using literate programming, that get intrinsically linked to the UI screens. Each new developer can easily get the starting-point for implementing or adapting something in the UI screen! This is the concept of *Locality of Behaviour*.
