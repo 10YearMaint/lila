@@ -12,6 +12,7 @@ mod utils;
 
 use commands::auto::{auto_format_code_in_folder, auto_format_code_in_markdown};
 use commands::chat::ChatArgs;
+use commands::convert::{convert_file_to_markdown, convert_folder_to_markdown};
 use commands::{chat::run_chat, extract::*, remove::*, save::*, translate::*, Args, Commands};
 
 use utils::{env::ensure_pandoc_installed, utils::process_protocol_aimm};
@@ -151,6 +152,34 @@ fn main() {
                 }
             } else {
                 println!("No protocol specified.");
+            }
+        }
+
+        // ------------------ Convert Command ------------------
+        Commands::Convert {
+            file,
+            folder,
+            output,
+        } => {
+            let root_folder = output
+                .as_ref()
+                .map(PathBuf::from)
+                .unwrap_or_else(|| default_root.join("doc"));
+
+            fs::create_dir_all(&root_folder)
+                .unwrap_or_else(|e| panic!("Could not create output folder: {}", e));
+
+            if let Some(file) = file {
+                let input_path = PathBuf::from(file);
+                if let Err(e) = convert_file_to_markdown(&input_path, &root_folder) {
+                    eprintln!("Error converting file {}: {}", file, e);
+                }
+            } else if let Some(folder) = folder {
+                if let Err(e) = convert_folder_to_markdown(folder, &root_folder.to_string_lossy()) {
+                    eprintln!("Error converting folder {}: {}", folder, e);
+                }
+            } else {
+                eprintln!("No file or folder provided for conversion.");
             }
         }
 

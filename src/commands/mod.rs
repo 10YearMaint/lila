@@ -1,5 +1,6 @@
 pub mod auto;
 pub mod chat;
+pub mod convert;
 pub mod extract;
 pub mod models;
 pub mod remove;
@@ -34,6 +35,21 @@ pub enum Commands {
         /// Optional: Specify a protocol (e.g., AImM) for special handling of extracted files
         #[arg(short, long)]
         protocol: Option<String>,
+    },
+
+    /// Convert code files (.py, .rs, .cpp, etc.) back into Markdown
+    Convert {
+        /// Specify a code file to convert (conflicts with folder)
+        #[arg(short, long, conflicts_with = "folder")]
+        file: Option<String>,
+
+        /// Specify a folder containing code files (conflicts with file)
+        #[arg(short, long, conflicts_with = "file")]
+        folder: Option<String>,
+
+        /// Optional: Specify the output folder for the resulting Markdown
+        #[arg(short, long)]
+        output: Option<String>,
     },
 
     /// Auto-format code blocks (Python, Rust, etc.) in a Markdown file *or* folder

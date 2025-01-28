@@ -68,7 +68,15 @@ If you code using the *AImM* protocol you should use the following command:
 lila extract --folder example --protocol AImM
 ```
 
-### 2. Auto Code Format Original Literate Code
+
+### 2. Convert Source Code back to Literate Code
+
+```bash
+lila convert --folder example --output .
+```
+
+
+### 3. Auto Code Format Original Literate Code
 
 *lila* has the functionality to auto code format literated code and insert it back into its original markdown file inplace.
 For this use the following command logic:
@@ -77,7 +85,7 @@ For this use the following command logic:
 lila auto --folder example
 ```
 
-### 3. Markdown to HTML Translator
+### 4. Markdown to HTML Translator
 
 If you want to create HTML files from the markdown files, you can use the following command:
 
@@ -88,7 +96,7 @@ lila translate --folder example --css src/css/style.css --disable-mermaid
 
 If you don't specify a CSS file, the default CSS of src/css/style.css will be used.
 
-### 4. Save HTML files in a Database
+### 5. Save HTML files in a Database
 
 If you want to save the meta data of the generated HTML files to a SQLite database, you can use the following command:
 
@@ -96,7 +104,7 @@ If you want to save the meta data of the generated HTML files to a SQLite databa
 lila save
 ```
 
-### 5. Chat2CodeLiterat functionality
+### 6. Chat2CodeLiterat functionality
 
 ```bash
 lila chat \
