@@ -85,14 +85,14 @@ pub enum Commands {
         disable_mermaid: bool,
     },
 
-    /// Save the tangled code and HTML metadata into a SQLite database
+    /// Save the rendered code and HTML metadata into a SQLite database
     Save {
         /// Optional: Path to the SQLite database (default: <doc_pure>/lila.db)
         #[arg(short, long)]
         db: Option<String>,
     },
 
-    /// Remove files created by `tangle` and `translate`. Use `-a` to remove all output folders.
+    /// Remove files created by `tangle` and `render`. Use `-a` to remove all output folders.
     Rm {
         /// Remove all files from the output folder, including other projects in .lila
         #[arg(short, long)]

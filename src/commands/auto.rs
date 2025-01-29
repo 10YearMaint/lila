@@ -158,7 +158,6 @@ pub fn auto_format_code_in_markdown(file_path: &str) -> io::Result<()> {
 }
 
 /// Recursively auto-format code blocks in all `.md` files under `folder_path`.
-/// Similar logic to `extract_code_from_folder` in your extract command.
 pub fn auto_format_code_in_folder(folder_path: &str) -> io::Result<()> {
     for entry in fs::read_dir(folder_path)? {
         let entry = entry?;
