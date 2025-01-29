@@ -36,6 +36,7 @@ pub struct ChatArgs {
     pub repeat_penalty: f32,
     pub repeat_last_n: usize,
     pub dtype: Option<String>,
+    pub no_db: bool,
 }
 
 // =============================================
@@ -69,12 +70,25 @@ fn load_all_html_data() -> Result<Vec<(String, String)>, DieselError> {
 // =============================================
 #[tokio::main]
 pub async fn run_chat(args: ChatArgs) -> Result<()> {
-    let data = match load_all_html_data() {
-        Ok(data) => data,
-        Err(e) => {
-            eprintln!("Failed to load HTML data: {:?}", e);
-            return Err(e.into());
+    // Conditionally load DB data
+    let db_content = if !args.no_db {
+        // If user didn't disable DB, load data
+        match load_all_html_data() {
+            Ok(data) => {
+                // Join them into a single string
+                data.into_iter()
+                    .map(|(file_path, content)| format!("File: {}\n{}", file_path, content))
+                    .collect::<Vec<_>>()
+                    .join("\n\n")
+            }
+            Err(e) => {
+                eprintln!("Failed to load HTML data: {:?}", e);
+                return Err(e.into());
+            }
         }
+    } else {
+        // No DB was requested
+        String::new()
     };
 
     let prompt = match &args.prompt {
@@ -94,12 +108,6 @@ pub async fn run_chat(args: ChatArgs) -> Result<()> {
         .with_paged_attn(|| PagedAttentionMetaBuilder::default().build())?
         .build()
         .await?;
-
-    let db_content = data
-        .into_iter()
-        .map(|(file_path, content)| format!("File: {}\n{}", file_path, content))
-        .collect::<Vec<_>>()
-        .join("\n\n");
 
     let messages = TextMessages::new()
         .add_message(
@@ -121,5 +129,6 @@ pub async fn run_chat(args: ChatArgs) -> Result<()> {
             print!("{}", chunk.choices[0].delta.content);
         }
     }
+
     Ok(())
 }
