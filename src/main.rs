@@ -12,8 +12,8 @@ mod utils;
 
 use commands::auto::{auto_format_code_in_folder, auto_format_code_in_markdown};
 use commands::chat::ChatArgs;
-use commands::convert::{convert_file_to_markdown, convert_folder_to_markdown};
-use commands::{chat::run_chat, extract::*, remove::*, save::*, translate::*, Args, Commands};
+use commands::weave::{convert_file_to_markdown, convert_folder_to_markdown};
+use commands::{chat::run_chat, remove::*, save::*, tangle::*, translate::*, Args, Commands};
 
 use utils::{env::ensure_pandoc_installed, utils::process_protocol_aimm};
 
@@ -92,8 +92,8 @@ fn main() {
             }
         }
 
-        // ------------------ Extract Command ------------------
-        Commands::Extract {
+        // ------------------ Tangle Command ------------------
+        Commands::Tangle {
             file,
             folder,
             output,
@@ -155,8 +155,8 @@ fn main() {
             }
         }
 
-        // ------------------ Convert Command ------------------
-        Commands::Convert {
+        // ------------------ Weave Command ------------------
+        Commands::Weave {
             file,
             folder,
             output,

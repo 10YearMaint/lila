@@ -1,10 +1,10 @@
 pub mod auto;
 pub mod chat;
-pub mod convert;
-pub mod extract;
 pub mod remove;
 pub mod save;
+pub mod tangle;
 pub mod translate;
+pub mod weave;
 
 use clap::{Parser, Subcommand};
 
@@ -17,37 +17,37 @@ pub struct Args {
 
 #[derive(Subcommand, Debug)]
 pub enum Commands {
-    /// Extract literated code from a Markdown file or folder containing Markdown files
-    Extract {
-        /// Specify a Markdown file to extract code from (conflicts with folder)
-        #[arg(short, long, conflicts_with = "folder")]
+    /// Extract pure source code from Markdown files.
+    Tangle {
+        /// Specify a Markdown file to extract code from. Cannot be used with --folder.
+        #[arg(short, long, value_name = "FILE", conflicts_with = "folder")]
         file: Option<String>,
 
-        /// Specify a folder containing Markdown files to extract code from (conflicts with file)
-        #[arg(short, long, conflicts_with = "file")]
+        /// Specify a directory containing Markdown files to extract code from. Cannot be used with --file.
+        #[arg(short, long, value_name = "FOLDER", conflicts_with = "file")]
         folder: Option<String>,
 
-        /// Optional: Specify the output folder where extracted code will be saved
-        #[arg(short, long)]
+        /// Specify the output directory where extracted code will be saved. Defaults to the current directory.
+        #[arg(short, long, value_name = "OUTPUT_DIR")]
         output: Option<String>,
 
-        /// Optional: Specify a protocol (e.g., AImM) for special handling of extracted files
-        #[arg(short, long)]
+        /// Specify a protocol (e.g., AImM) for special handling of extracted files.
+        #[arg(short, long, value_name = "PROTOCOL")]
         protocol: Option<String>,
     },
 
-    /// Convert code files (.py, .rs, .cpp, etc.) back into Markdown
-    Convert {
-        /// Specify a code file to convert (conflicts with folder)
-        #[arg(short, long, conflicts_with = "folder")]
+    /// Embed source code files back into Markdown format.
+    Weave {
+        /// Specify a source code file to embed into Markdown. Cannot be used with --folder.
+        #[arg(short, long, value_name = "FILE", conflicts_with = "folder")]
         file: Option<String>,
 
-        /// Specify a folder containing code files (conflicts with file)
-        #[arg(short, long, conflicts_with = "file")]
+        /// Specify a directory containing source code files to embed into Markdown. Cannot be used with --file.
+        #[arg(short, long, value_name = "FOLDER", conflicts_with = "file")]
         folder: Option<String>,
 
-        /// Optional: Specify the output folder for the resulting Markdown
-        #[arg(short, long)]
+        /// Specify the output directory for the resulting Markdown files. Defaults to the current directory.
+        #[arg(short, long, value_name = "OUTPUT_DIR")]
         output: Option<String>,
     },
 
@@ -85,14 +85,14 @@ pub enum Commands {
         disable_mermaid: bool,
     },
 
-    /// Save the extracted code and HTML metadata into a SQLite database
+    /// Save the tangled code and HTML metadata into a SQLite database
     Save {
         /// Optional: Path to the SQLite database (default: <doc_pure>/lila.db)
         #[arg(short, long)]
         db: Option<String>,
     },
 
-    /// Remove files created by `extract` and `translate`. Use `-a` to remove all output folders.
+    /// Remove files created by `tangle` and `translate`. Use `-a` to remove all output folders.
     Rm {
         /// Remove all files from the output folder, including other projects in .lila
         #[arg(short, long)]

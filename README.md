@@ -53,26 +53,26 @@ lila chat \
 ### 1. Extract Literate Code into normal Source Code
 
 ```bash
-./target/release/lila extract --file example/math_operations.md
+./target/release/lila tangle --file example/math_operations.md
 ```
 
 or for a complete folder
 
 ```bash
-lila extract --folder example
+lila tangle --folder example
 ```
 
 If you code using the *AImM* protocol you should use the following command:
 
 ```bash
-lila extract --folder example --protocol AImM
+lila tangle --folder example --protocol AImM
 ```
 
 
-### 2. Convert Source Code back to Literate Code
+### 2. Weave Source Code back to Literate Code
 
 ```bash
-lila convert --folder example --output .
+lila weave --folder example --output weaved_code
 ```
 
 
@@ -81,7 +81,7 @@ lila convert --folder example --output .
 *lila* has the functionality to auto code format literated code and insert it back into its original markdown file inplace.
 For this use the following command logic:
 
-```
+```bash
 lila auto --folder example
 ```
 
