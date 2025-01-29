@@ -1,3 +1,4 @@
+use colored::Colorize;
 use regex::Regex;
 use std::fs::{self, File};
 use std::io::{self, Write};
@@ -35,7 +36,11 @@ pub fn generate_html_from_markdown(
         clean_mermaid_code_tags(output_path)?;
     }
 
-    println!("Generated HTML from {} to {}", input_path, output_path);
+    let checkmark = "✔".green();
+    println!(
+        "{} Generated HTML from {} to {}",
+        checkmark, input_path, output_path
+    );
     Ok(())
 }
 
@@ -141,7 +146,12 @@ fn translate_markdown_folder_internal(
                 css_path,
                 mermaid_path,
             ) {
-                eprintln!("Error generating HTML for {}: {}", path.display(), e);
+                eprintln!(
+                    "{} {}: {}",
+                    "! Error generating HTML for".red(),
+                    path.display(),
+                    e
+                );
             } else {
                 html_paths.push(html_output_path.to_str().unwrap().to_string());
             }

@@ -1,3 +1,4 @@
+use colored::Colorize;
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::fs::File;
@@ -109,24 +110,42 @@ pub fn extract_code_from_folder(folder_path: &str, app_folder: &str) -> io::Resu
                             }
                             let mut output_file = File::create(&file_output_path)?;
                             output_file.write_all(code.as_bytes())?;
-                            println!("Code extracted to {}", file_output_path.display());
+                            let checkmark = "✔".green();
+                            println!(
+                                "{} Code extracted to {}",
+                                checkmark,
+                                file_output_path.display()
+                            );
                         }
                     }
                     Ok(Err(_)) => {
                         // Copy simple markdown file to .app folder
                         let output_path = PathBuf::from(app_folder).join(path.file_name().unwrap());
                         std::fs::copy(&path, &output_path)?;
-                        println!("Copied file to {}", output_path.display());
+                        println!(
+                            "{} {}",
+                            "ℹ Copied file to".bright_cyan(),
+                            output_path.display()
+                        );
                     }
                     Err(e) => {
-                        eprintln!("Error processing file {}: {}", path.display(), e);
+                        eprintln!(
+                            "{} {}: {}",
+                            "! Error processing file".red(),
+                            path.display(),
+                            e
+                        );
                     }
                 }
             } else {
                 // Copy non-markdown file to app folder
                 let output_path = PathBuf::from(app_folder).join(path.file_name().unwrap());
                 std::fs::copy(&path, &output_path)?;
-                println!("Copied file to {}", output_path.display());
+                println!(
+                    "{} {}",
+                    "ℹ Copied file to ".bright_cyan(),
+                    output_path.display()
+                );
             }
         }
     }

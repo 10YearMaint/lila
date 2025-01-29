@@ -1,4 +1,5 @@
 use clap::Parser;
+use colored::Colorize;
 use dirs::home_dir;
 use std::env;
 use std::ffi::OsStr;
@@ -74,24 +75,6 @@ fn main() {
     let default_root = lila_root.join(&project_name);
 
     match &args.command {
-        // ------------------ Auto-Formatting Command ----------
-        Commands::Auto { file, folder } => {
-            // Decide whether we’re formatting a single file or an entire folder:
-            if let Some(file) = file {
-                // Single file
-                if let Err(e) = auto_format_code_in_markdown(file) {
-                    eprintln!("Error auto-formatting file {}: {}", file, e);
-                }
-            } else if let Some(folder) = folder {
-                // Entire folder
-                if let Err(e) = auto_format_code_in_folder(folder) {
-                    eprintln!("Error auto-formatting folder {}: {}", folder, e);
-                }
-            } else {
-                eprintln!("No file or folder provided for auto-formatting.");
-            }
-        }
-
         // ------------------ Tangle Command ------------------
         Commands::Tangle {
             file,
@@ -124,7 +107,8 @@ fn main() {
                             }
                             let mut output_file = File::create(&output_path).unwrap();
                             output_file.write_all(code.as_bytes()).unwrap();
-                            println!("Code extracted to {}", output_path.display());
+                            let checkmark = "✔".green();
+                            println!("{} Code extracted to {}", checkmark, output_path.display());
                         }
                     }
                     Ok(Err(_)) => {
@@ -180,6 +164,24 @@ fn main() {
                 }
             } else {
                 eprintln!("No file or folder provided for conversion.");
+            }
+        }
+
+        // ------------------ Auto-Formatting Command ----------
+        Commands::Auto { file, folder } => {
+            // Decide whether we’re formatting a single file or an entire folder:
+            if let Some(file) = file {
+                // Single file
+                if let Err(e) = auto_format_code_in_markdown(file) {
+                    eprintln!("Error auto-formatting file {}: {}", file, e);
+                }
+            } else if let Some(folder) = folder {
+                // Entire folder
+                if let Err(e) = auto_format_code_in_folder(folder) {
+                    eprintln!("Error auto-formatting folder {}: {}", folder, e);
+                }
+            } else {
+                eprintln!("No file or folder provided for auto-formatting.");
             }
         }
 

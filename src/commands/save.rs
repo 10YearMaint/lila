@@ -1,5 +1,6 @@
 use crate::schema::{html_content, html_metadata};
 use crate::utils::database::models::{HtmlContent, HtmlMetadata};
+use colored::Colorize;
 use diesel::prelude::*;
 use diesel::result::Error;
 use diesel::sql_query;
@@ -128,7 +129,10 @@ pub fn save_html_metadata_to_db(
             }
         }
 
-        println!("Successfully saved HTML metadata and content to the database.");
+        println!(
+            "{}",
+            "Successfully saved HTML metadata and content to the database.".green()
+        );
         Ok(())
     })
 }
