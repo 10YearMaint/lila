@@ -5,9 +5,9 @@ use dotenvy::dotenv;
 use std::env;
 use std::path::Path;
 
-use crate::commands::models::{HtmlContent, HtmlMetadata};
 use crate::commands::save::establish_connection;
 use crate::schema::{html_content, html_metadata};
+use crate::utils::database::models::{HtmlContent, HtmlMetadata};
 
 use hf_hub::{api::sync::Api, Repo, RepoType};
 use mistralrs::{

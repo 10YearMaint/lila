@@ -2,7 +2,6 @@ pub mod auto;
 pub mod chat;
 pub mod convert;
 pub mod extract;
-pub mod models;
 pub mod remove;
 pub mod save;
 pub mod translate;

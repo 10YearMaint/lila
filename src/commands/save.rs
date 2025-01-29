@@ -1,5 +1,5 @@
-use crate::commands::models::{HtmlContent, HtmlMetadata};
 use crate::schema::{html_content, html_metadata};
+use crate::utils::database::models::{HtmlContent, HtmlMetadata};
 use diesel::prelude::*;
 use diesel::result::Error;
 use diesel::sql_query;
