@@ -13,7 +13,7 @@ mod utils;
 use commands::auto::{auto_format_code_in_folder, auto_format_code_in_markdown};
 use commands::chat::ChatArgs;
 use commands::weave::{convert_file_to_markdown, convert_folder_to_markdown};
-use commands::{chat::run_chat, remove::*, save::*, tangle::*, translate::*, Args, Commands};
+use commands::{chat::run_chat, remove::*, render::*, save::*, tangle::*, Args, Commands};
 
 use utils::{env::ensure_pandoc_installed, utils::process_protocol_aimm};
 
@@ -183,8 +183,8 @@ fn main() {
             }
         }
 
-        // ------------------ Translate Command ------------------
-        Commands::Translate {
+        // ------------------ Render Command ------------------
+        Commands::Render {
             folder,
             output,
             css,

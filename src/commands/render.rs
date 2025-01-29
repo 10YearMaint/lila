@@ -85,7 +85,7 @@ fn clean_mermaid_code_tags(html_file_path: &str) -> io::Result<()> {
     Ok(())
 }
 
-/// Translates all markdown files in a folder to HTML, applying the specified CSS and optionally Mermaid.js files.
+/// Render all markdown files in a folder to HTML, applying the specified CSS and optionally Mermaid.js files.
 pub fn translate_markdown_folder(
     folder_path: &str,
     doc_folder: &str,

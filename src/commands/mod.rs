@@ -1,9 +1,9 @@
 pub mod auto;
 pub mod chat;
 pub mod remove;
+pub mod render;
 pub mod save;
 pub mod tangle;
-pub mod translate;
 pub mod weave;
 
 use clap::{Parser, Subcommand};
@@ -62,13 +62,13 @@ pub enum Commands {
         folder: Option<String>,
     },
 
-    /// Translate Markdown files into HTML using Pandoc
-    Translate {
-        /// Folder containing Markdown files to be translated
+    /// Convert Markdown files with embedded code into HTML
+    Render {
+        /// Folder containing Markdown files to be rendered
         #[arg(short, long)]
         folder: String,
 
-        /// Optional: Output folder for translated files (default: ~/.lila/<project_name>/doc)
+        /// Optional: Output folder for rendered files (default: ~/.lila/<project_name>/doc)
         #[arg(short, long)]
         output: Option<String>,
 
