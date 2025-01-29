@@ -109,7 +109,8 @@ lila save
 ```bash
 lila chat \
     --prompt "Can you understand HTML code? Can you provide me an example code? With a button? And if I click the button every time, a counter gets increased by the number 2? Can you also add some css design within the HTML code?" \
-    --no-db
+    --no-db \
+    --model-id microsoft/Phi-3.5-mini-instruct
 ```
 
 
@@ -118,7 +119,7 @@ lila chat \
 Battle Tested SLM Models to run On-Premise：
 
 ⭐ [microsoft/Phi-3.5-mini-instruct](https://huggingface.co/microsoft/Phi-3.5-mini-instruct)
-
+⭐ [Qwen/Qwen2.5-Coder-3B-Instruct](https://huggingface.co/Qwen/Qwen2.5-Coder-3B-Instruct)
 
 Not yet tested:
 
