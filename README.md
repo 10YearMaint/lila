@@ -44,7 +44,7 @@ rustc install.rs && ./install
 You just want to chat with your literate code? Use this shortcut to get started:
 
 ```bash
-lila translate --folder example --css src/css/style.css --disable-mermaid
+lila render --folder example --css src/css/style.css --disable-mermaid
 lila save
 lila chat \
     --prompt "I know you got provided some HTML code. Can you say whats happening there? By which factor does the counter gets increased by?"
@@ -90,8 +90,8 @@ lila auto --folder example
 If you want to create HTML files from the markdown files, you can use the following command:
 
 ```bash
-lila translate --folder example --css src/css/style.css --mermaid src/js/mermaid.min.js
-lila translate --folder example --css src/css/style.css --disable-mermaid
+lila render --folder example --css src/css/style.css --mermaid src/js/mermaid.min.js
+lila render --folder example --css src/css/style.css --disable-mermaid
 ```
 
 If you don't specify a CSS file, the default CSS of src/css/style.css will be used.
