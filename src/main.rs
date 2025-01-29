@@ -330,6 +330,7 @@ fn main() {
             repeat_penalty,
             repeat_last_n,
             dtype,
+            no_db,
         } => {
             // Construct the ChatArgs struct and pass it to run_chat:
             let chat_args = ChatArgs {
@@ -350,6 +351,7 @@ fn main() {
                 repeat_penalty: *repeat_penalty,
                 repeat_last_n: *repeat_last_n,
                 dtype: dtype.clone(),
+                no_db: *no_db,
             };
 
             if let Err(err) = run_chat(chat_args) {

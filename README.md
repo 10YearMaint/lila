@@ -108,9 +108,9 @@ lila save
 
 ```bash
 lila chat \
-    --prompt "Can you understand HTML code? Can you provide me an example code? With a button? And if I click the button every time, a counter gets increased by the number 2? Can you also add some css design within the HTML code?"
+    --prompt "Can you understand HTML code? Can you provide me an example code? With a button? And if I click the button every time, a counter gets increased by the number 2? Can you also add some css design within the HTML code?" \
+    --no-db
 ```
-
 
 
 #### model-id

@@ -166,5 +166,9 @@ pub enum Commands {
         /// The dtype, e.g. f32, bf16, or f16
         #[arg(long)]
         dtype: Option<String>,
+
+        /// Disable loading data from the DB
+        #[arg(long, default_value_t = false)]
+        no_db: bool,
     },
 }
