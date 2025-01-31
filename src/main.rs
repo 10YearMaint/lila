@@ -14,7 +14,10 @@ mod utils;
 use commands::auto::{auto_format_code_in_folder, auto_format_code_in_markdown};
 use commands::chat::ChatArgs;
 use commands::weave::{convert_file_to_markdown, convert_folder_to_markdown};
-use commands::{chat::run_chat, remove::*, render::*, save::*, tangle::*, Args, Commands};
+use commands::{
+    chat::run_chat, recommend::run_recommend, remove::*, render::*, save::*, tangle::*, Args,
+    Commands,
+};
 
 use utils::{env::ensure_pandoc_installed, utils::process_protocol_aimm};
 
@@ -309,6 +312,11 @@ fn main() {
             if let Err(e) = remove_output_folder(&root_folder.to_string_lossy(), *all) {
                 eprintln!("Error removing project files: {}", e);
             }
+        }
+
+        // ------------------ Recommend Command ------------------
+        Commands::Recommend => {
+            run_recommend();
         }
 
         // ------------------ Chat Command ----------------
