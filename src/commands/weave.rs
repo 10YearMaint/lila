@@ -21,11 +21,11 @@ pub fn convert_file_to_markdown(input_file: &Path, output_folder: &Path) -> io::
         .unwrap_or("")
         .to_lowercase();
 
-    // Skip `.md` or `.markdown`
+    // If extension is Markdown, skip converting (handled by copy in convert_folder_to_markdown).
     if extension == "md" || extension == "markdown" {
         println!(
             "{} {}",
-            "ℹ Skipping Markdown file:".bright_cyan(),
+            "ℹ Skipping Markdown file for conversion:".bright_cyan(),
             input_file.display()
         );
         return Ok(());
@@ -103,7 +103,7 @@ pub fn convert_file_to_markdown(input_file: &Path, output_folder: &Path) -> io::
 }
 
 /// Recursively walk a folder of code files, converting each to Markdown.
-/// Skips `.md` or `.markdown` files.
+/// Existing `.md` or `.markdown` files get copied over directly (relative path).
 pub fn convert_folder_to_markdown(input_folder: &str, output_folder: &str) -> io::Result<()> {
     let output_folder_path = PathBuf::from(output_folder);
     fs::create_dir_all(&output_folder_path)?;
@@ -113,22 +113,32 @@ pub fn convert_folder_to_markdown(input_folder: &str, output_folder: &str) -> io
         let path = entry.path();
 
         if path.is_dir() {
+            // Recursively handle subfolders
             let sub_output = output_folder_path.join(path.file_name().unwrap());
             fs::create_dir_all(&sub_output)?;
             convert_folder_to_markdown(path.to_str().unwrap(), sub_output.to_str().unwrap())?;
         } else if path.is_file() {
-            // Skip Markdown files
-            if let Some(ext) = path.extension().and_then(|e| e.to_str()) {
-                if ext.eq_ignore_ascii_case("md") || ext.eq_ignore_ascii_case("markdown") {
-                    println!(
-                        "{} {}",
-                        "ℹ Skipping Markdown file:".bright_cyan(),
-                        path.display()
-                    );
-                    continue;
-                }
+            let extension = path
+                .extension()
+                .and_then(|e| e.to_str())
+                .unwrap_or("")
+                .to_lowercase();
+
+            // If it's a Markdown file, copy it to preserve relative structure.
+            if extension == "md" || extension == "markdown" {
+                let dest_path = output_folder_path.join(path.file_name().unwrap());
+                fs::copy(&path, &dest_path)?;
+                let checkmark = "✔".green();
+                println!(
+                    "{} Copied {} -> {}",
+                    checkmark,
+                    path.display(),
+                    dest_path.display()
+                );
+            } else {
+                // Otherwise, convert the file into Markdown
+                convert_file_to_markdown(&path, &output_folder_path)?;
             }
-            convert_file_to_markdown(&path, &output_folder_path)?;
         }
     }
 

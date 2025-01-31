@@ -76,3 +76,4 @@ doc/*
 *.html
 *.db
 *.sqlite
+book/

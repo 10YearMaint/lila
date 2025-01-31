@@ -79,7 +79,7 @@ lila tangle --folder example --protocol AImM
 ### 2. Weave Source Code back to Literate Code
 
 ```bash
-lila weave --folder example --output weaved_code
+lila weave --folder example --output book
 ```
 
 
