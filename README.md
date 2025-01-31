@@ -39,6 +39,13 @@ If you are on a Unix-like system, you can use the following command:
 rustc install.rs && ./install
 ```
 
+or on Windows this commands:
+
+```bash
+rustc install_windows.rs && .\install_windows.exe
+```
+
+
 ## Usage
 
 You just want to chat with your literate code? Use this shortcut to get started:

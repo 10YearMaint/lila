@@ -24,8 +24,5 @@ tokio = "1.43.0"
 tracing = "~0.1"
 walkdir = "~2.5"
 
-[target.x86_64-pc-windows-gnu]
-rustflags = ["-C", "target-feature=+crt-static"]
-
 [target.'cfg(target_os = "macos")'.dependencies]
 metal = { version = "~0.31", features = ["mps"] }
