@@ -39,10 +39,10 @@ If you are on a Unix-like system, you can use the following command:
 rustc install.rs && ./install
 ```
 
-or on Windows this commands:
+or on Windows this command in the PowerShell:
 
 ```bash
-rustc install_windows.rs && .\install_windows.exe
+rustc install_windows.rs; if ($?) { .\install_windows.exe }
 ```
 
 
