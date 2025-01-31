@@ -1,5 +1,7 @@
 ---
 output_filename: "math_operations"
+
+brief: "An example file of simple math operations"
 ---
 
 # Math Operations
