@@ -1,11 +1,11 @@
 pub mod auto;
 pub mod chat;
+pub mod recommend;
 pub mod remove;
 pub mod render;
 pub mod save;
 pub mod tangle;
 pub mod weave;
-
 use clap::{Parser, Subcommand};
 
 #[derive(Parser, Debug)]
@@ -102,6 +102,9 @@ pub enum Commands {
         #[arg(short, long)]
         output: Option<String>,
     },
+
+    /// Provides a recommendation for the AI model based on system hardware.
+    Recommend,
 
     /// Chat subcommand
     Chat {
