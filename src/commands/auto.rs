@@ -1,6 +1,7 @@
+use colored::Colorize;
 use std::fs::{self, File};
 use std::io::{self, BufRead, BufReader, Write};
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::process::{Command, Stdio};
 use tempfile::NamedTempFile;
 
@@ -36,12 +37,31 @@ fn format_code_snippet(code_lines: &[String], lang: &CodeLanguage) -> io::Result
         return Ok(code_lines.to_vec());
     }
 
-    // Decide extension and formatter.
-    let (extension, formatter, formatter_args) = match lang {
-        CodeLanguage::Python => ("py", "black", vec!["--quiet"]),
-        CodeLanguage::Rust => ("rs", "rustfmt", vec![]),
-        CodeLanguage::Unknown => unreachable!("We handled Unknown already"),
+    // Before deciding extension + formatter,
+    // check if the relevant formatter is installed by reading .env or environment:
+    let (env_var, formatter_cmd, extension, formatter_args) = match lang {
+        CodeLanguage::Python => ("BLACK_INSTALLED", "black", "py", vec!["--quiet"]),
+        CodeLanguage::Rust => ("RUSTFMT_INSTALLED", "rustfmt", "rs", vec![]),
+        CodeLanguage::Unknown => unreachable!("We've handled Unknown above."),
     };
+
+    let is_installed = match std::env::var(env_var) {
+        Ok(val) if val.to_lowercase() == "true" => true,
+        _ => false,
+    };
+
+    if !is_installed {
+        eprintln!(
+            "{} {}",
+            "Skipping auto-format:".yellow(),
+            format!(
+                "No {} installed on this system ({}=false).",
+                formatter_cmd, env_var
+            )
+            .yellow()
+        );
+        return Ok(code_lines.to_vec());
+    }
 
     // Create a temp file and rename with correct extension.
     let temp_file = NamedTempFile::new()?;
@@ -58,7 +78,7 @@ fn format_code_snippet(code_lines: &[String], lang: &CodeLanguage) -> io::Result
     }
 
     // Call the formatter silently.
-    let status = Command::new(formatter)
+    let status = Command::new(formatter_cmd)
         .args(&formatter_args)
         .arg(&temp_path)
         .stdout(Stdio::null())
@@ -77,14 +97,19 @@ fn format_code_snippet(code_lines: &[String], lang: &CodeLanguage) -> io::Result
         }
         Ok(_) => {
             eprintln!(
-                "Warning: formatter exited with a non-zero status for {:?}",
-                lang
+                "{} {}",
+                "Warning:".bright_red(),
+                format!("formatter {:?} exited with non-zero status.", lang).red()
             );
-            Ok(code_lines.to_vec()) // Return the original snippet on failure
+            Ok(code_lines.to_vec()) // Return original snippet on failure
         }
         Err(e) => {
-            eprintln!("Error running formatter for {:?}: {}", lang, e);
-            Ok(code_lines.to_vec()) // Return the original snippet on error
+            eprintln!(
+                "{} {}",
+                "Error running formatter:".bright_red(),
+                e.to_string().red()
+            );
+            Ok(code_lines.to_vec()) // Return original snippet on error
         }
     }
 }
@@ -119,7 +144,7 @@ pub fn auto_format_code_in_markdown(file_path: &str) -> io::Result<()> {
                         }
                         Err(e) => {
                             eprintln!(
-                                "Warning: could not format {:?} code block in {}: {}",
+                                "Warning: could not format {:?} block in {}: {}",
                                 code_block_language, file_path, e
                             );
                         }

@@ -14,10 +14,7 @@ mod utils;
 use commands::auto::{auto_format_code_in_folder, auto_format_code_in_markdown};
 use commands::chat::ChatArgs;
 use commands::weave::{convert_file_to_markdown, convert_folder_to_markdown};
-use commands::{
-    chat::run_chat, recommend::run_recommend, remove::*, render::*, save::*, tangle::*, Args,
-    Commands,
-};
+use commands::{chat::run_chat, remove::*, render::*, save::*, tangle::*, Args, Commands};
 
 use utils::{env::ensure_pandoc_installed, utils::process_protocol_aimm};
 
@@ -76,6 +73,9 @@ fn main() {
         .to_string_lossy()
         .to_string();
     let default_root = lila_root.join(&project_name);
+
+    // Load the .env file variables into runtime
+    dotenvy::dotenv().ok();
 
     match &args.command {
         // ------------------ Init Command --------------------
@@ -309,9 +309,15 @@ fn main() {
             }
         }
 
-        // ------------------ Recommend Command ------------------
-        Commands::Recommend => {
-            run_recommend();
+        // ------------------ Rm Command ------------------
+        Commands::Rm { all, output } => {
+            let root_folder = output
+                .as_ref()
+                .map(|path| PathBuf::from(path))
+                .unwrap_or_else(|| default_root.clone());
+            if let Err(e) = remove_output_folder(&root_folder.to_string_lossy(), *all) {
+                eprintln!("Error removing project files: {}", e);
+            }
         }
 
         // ------------------ Chat Command ----------------
