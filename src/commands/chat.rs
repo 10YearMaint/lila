@@ -43,11 +43,11 @@ pub struct ChatArgs {
 // Helper function: Load all HTML data from DB
 // =============================================
 fn load_all_html_data() -> Result<Vec<(String, String)>, DieselError> {
-    // 1) Load environment to read CODELITERAT_OUTPUT_PATH
+    // 1) Load environment to read LILA_OUTPUT_PATH
     dotenv().ok(); // This loads .env if found
 
     // 2) Grab the base folder from the .env variable
-    let base_path = env::var("CODELITERAT_OUTPUT_PATH").map_err(|_| DieselError::NotFound)?;
+    let base_path = env::var("LILA_OUTPUT_PATH").map_err(|_| DieselError::NotFound)?;
 
     // 3) Build the path to doc_pure/lila.db
     let db_path = Path::new(&base_path).join("doc_pure").join("lila.db");

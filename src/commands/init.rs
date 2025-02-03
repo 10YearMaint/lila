@@ -1,7 +1,9 @@
 use colored::Colorize;
+use dirs::home_dir;
+use std::ffi::OsStr;
 use std::fs::{File, OpenOptions};
 use std::io::{self, BufRead, BufReader, Write};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use sysinfo::System;
 
@@ -139,11 +141,47 @@ fn run_recommend() -> io::Result<()> {
     Ok(())
 }
 
+/// Initializes the project for Lila:
+/// 1) Sets a default LILA_OUTPUT_PATH (i.e. ~/.lila/<project_name>)
+/// 2) Checks for `black` / `rustfmt` and sets environment flags
+/// 3) Runs AI model recommendation
 pub fn init() -> io::Result<()> {
     println!("{}", "Welcome to lila init!".bright_green());
     println!("This will check for code formatters and record them in your .env file.\n");
 
-    // Check black
+    // 1) Set the default LILA_OUTPUT_PATH
+    let home = home_dir().expect("Could not determine the home directory");
+    let current_dir = std::env::current_dir()?;
+    let project_name = current_dir
+        .file_name()
+        .unwrap_or_else(|| OsStr::new("default"))
+        .to_string_lossy()
+        .to_string();
+    let lila_root = home.join(".lila");
+    let default_root = lila_root.join(&project_name);
+
+    // Give the user a chance to override or accept
+    println!(
+        "Default project output path is: {}\nPress ENTER to accept or type a different path:",
+        default_root.display()
+    );
+    print!("> ");
+    io::stdout().flush()?;
+
+    let mut input = String::new();
+    io::stdin().read_line(&mut input)?;
+    let path_input = input.trim();
+
+    let final_path = if path_input.is_empty() {
+        default_root
+    } else {
+        PathBuf::from(path_input)
+    };
+
+    // Write LILA_OUTPUT_PATH to .env
+    update_env_value("LILA_OUTPUT_PATH", &final_path.to_string_lossy())?;
+
+    // 2) Check black
     let black_installed = check_program_availability("black");
     let black_msg = if black_installed {
         "Detected 'black' on this system."
@@ -151,12 +189,12 @@ pub fn init() -> io::Result<()> {
         "Could NOT detect 'black' on this system."
     };
     println!("{}", black_msg.bright_yellow());
+    update_env_value(
+        "BLACK_INSTALLED",
+        if black_installed { "true" } else { "false" },
+    )?;
 
-    // Store in .env
-    let black_env_value = if black_installed { "true" } else { "false" };
-    update_env_value("BLACK_INSTALLED", black_env_value)?;
-
-    // Check rustfmt
+    // 2a) Check rustfmt
     let rustfmt_installed = check_program_availability("rustfmt");
     let rustfmt_msg = if rustfmt_installed {
         "Detected 'rustfmt' on this system."
@@ -164,12 +202,12 @@ pub fn init() -> io::Result<()> {
         "Could NOT detect 'rustfmt' on this system."
     };
     println!("{}", rustfmt_msg.bright_yellow());
+    update_env_value(
+        "RUSTFMT_INSTALLED",
+        if rustfmt_installed { "true" } else { "false" },
+    )?;
 
-    // Store in .env
-    let rustfmt_env_value = if rustfmt_installed { "true" } else { "false" };
-    update_env_value("RUSTFMT_INSTALLED", rustfmt_env_value)?;
-
-    // Run system-based recommendation for AI model
+    // 3) Run system-based recommendation for AI model
     run_recommend()?;
 
     println!("\n{}", "Done! Your .env file was updated.".bright_green());

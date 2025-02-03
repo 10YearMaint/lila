@@ -14,56 +14,20 @@ mod utils;
 use commands::auto::{auto_format_code_in_folder, auto_format_code_in_markdown};
 use commands::chat::ChatArgs;
 use commands::weave::{convert_file_to_markdown, convert_folder_to_markdown};
-use commands::{chat::run_chat, remove::*, render::*, save::*, tangle::*, Args, Commands};
-
+use commands::{
+    chat::run_chat, init::init as run_init, remove::*, render::*, save::*, tangle::*, Args,
+    Commands,
+};
 use utils::{env::ensure_pandoc_installed, utils::process_protocol_aimm};
 
-/// Appends or updates `CODELITERAT_OUTPUT_PATH` in a local `.env` file
-/// without including subfolders (like `.app` or `doc`).
-fn update_dotenv(root_folder: &Path) -> io::Result<()> {
-    let dotenv_path = Path::new(".env");
-    let output_str = root_folder.to_string_lossy();
-    let line_to_write = format!("CODELITERAT_OUTPUT_PATH={}", output_str);
-
-    // If .env doesn't exist, create it
-    if !dotenv_path.exists() {
-        let mut file = File::create(dotenv_path)?;
-        writeln!(file, "# lila environment settings")?;
-        writeln!(file, "{}", line_to_write)?;
-        return Ok(());
-    }
-
-    // If .env exists, see if CODELITERAT_OUTPUT_PATH is already present
-    let content = fs::read_to_string(dotenv_path)?;
-    let mut lines: Vec<&str> = content.lines().collect();
-    let mut found = false;
-
-    for line in &mut lines {
-        if line.trim_start().starts_with("CODELITERAT_OUTPUT_PATH=") {
-            *line = &line_to_write;
-            found = true;
-            break;
-        }
-    }
-
-    if !found {
-        lines.push("# lila environment settings (appended)");
-        lines.push(&line_to_write);
-    }
-
-    // Rewrite .env
-    let mut file = File::create(dotenv_path)?;
-    for line in lines {
-        writeln!(file, "{}", line)?;
-    }
-
-    Ok(())
-}
-
 fn main() {
+    // 1) Parse CLI args
     let args = Args::parse();
 
-    // Default root folder => ~/.lila/<project_name>
+    // 2) Load any existing .env (so that LILA_OUTPUT_PATH, BLACK_INSTALLED, etc. are in scope)
+    dotenvy::dotenv().ok();
+
+    // 3) The "project_name" logic is only for fallback if user doesn’t supply an --output path
     let home = home_dir().expect("Could not determine the home directory");
     let lila_root = home.join(".lila");
     let current_dir = env::current_dir().expect("Failed to get current directory");
@@ -74,13 +38,11 @@ fn main() {
         .to_string();
     let default_root = lila_root.join(&project_name);
 
-    // Load the .env file variables into runtime
-    dotenvy::dotenv().ok();
-
     match &args.command {
         // ------------------ Init Command --------------------
         Commands::Init => {
-            if let Err(e) = commands::init::init() {
+            // We call the new init in commands/init
+            if let Err(e) = run_init() {
                 eprintln!("Error during init: {}", e);
             }
         }
@@ -92,19 +54,22 @@ fn main() {
             output,
             protocol,
         } => {
+            // If user provided --output, use that, otherwise read from .env or fallback
             let root_folder = output
                 .as_ref()
                 .map(PathBuf::from)
-                .unwrap_or_else(|| default_root.clone());
+                .or_else(|| {
+                    // If .env has LILA_OUTPUT_PATH, use it
+                    match std::env::var("LILA_OUTPUT_PATH") {
+                        Ok(path) => Some(PathBuf::from(path)),
+                        Err(_) => Some(default_root.clone()),
+                    }
+                })
+                .unwrap_or(default_root.clone());
 
             let app_folder = root_folder.join(".app");
             fs::create_dir_all(&app_folder)
                 .unwrap_or_else(|e| panic!("Could not create .app folder: {}", e));
-
-            // Update .env with just the root folder
-            if let Err(e) = update_dotenv(&root_folder) {
-                eprintln!("Warning: Could not update .env: {}", e);
-            }
 
             // Extraction logic
             if let Some(file) = file {
@@ -158,7 +123,11 @@ fn main() {
             let root_folder = output
                 .as_ref()
                 .map(PathBuf::from)
-                .unwrap_or_else(|| default_root.join("doc"));
+                .or_else(|| match std::env::var("LILA_OUTPUT_PATH") {
+                    Ok(path) => Some(PathBuf::from(path).join("doc")),
+                    Err(_) => Some(default_root.join("doc")),
+                })
+                .unwrap_or(default_root.join("doc"));
 
             fs::create_dir_all(&root_folder)
                 .unwrap_or_else(|e| panic!("Could not create output folder: {}", e));
@@ -219,11 +188,6 @@ fn main() {
             // Create the appropriate documentation folder
             fs::create_dir_all(&doc_folder)
                 .unwrap_or_else(|e| panic!("Could not create doc folder: {}", e));
-
-            // Update .env with just the root folder
-            if let Err(e) = update_dotenv(&root_folder) {
-                eprintln!("Warning: Could not update .env: {}", e);
-            }
 
             // Determine CSS and Mermaid paths
             let css_path = css
