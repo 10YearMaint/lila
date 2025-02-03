@@ -125,11 +125,11 @@ fn run_recommend() -> io::Result<()> {
             }
         };
 
-        update_env_value("LILA_3B_MODEL", model_selected)?;
+        update_env_value("LILA_AI_MODEL", model_selected)?;
         println!(
             "{} {} {}",
             "Set".green(),
-            "LILA_3B_MODEL=".yellow(),
+            "LILA_AI_MODEL=".yellow(),
             model_selected.green()
         );
     } else {

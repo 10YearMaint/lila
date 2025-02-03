@@ -97,8 +97,8 @@ pub async fn run_chat(args: ChatArgs) -> Result<()> {
     };
 
     let model_id = args.model_id.clone().unwrap_or_else(|| {
-        // fallback if none given
-        "microsoft/Phi-3.5-mini-instruct".to_string()
+        std::env::var("LILA_AI_MODEL")
+            .unwrap_or_else(|_| "microsoft/Phi-3.5-mini-instruct".to_string())
     });
     println!("Using model={model_id}");
 
