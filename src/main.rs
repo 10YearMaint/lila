@@ -78,6 +78,13 @@ fn main() {
     let default_root = lila_root.join(&project_name);
 
     match &args.command {
+        // ------------------ Init Command --------------------
+        Commands::Init => {
+            if let Err(e) = commands::init::init() {
+                eprintln!("Error during init: {}", e);
+            }
+        }
+
         // ------------------ Tangle Command ------------------
         Commands::Tangle {
             file,
@@ -299,18 +306,6 @@ fn main() {
                     "Successfully saved HTML metadata to '{}'",
                     db_path.display()
                 );
-            }
-        }
-
-        // ------------------ Rm Command ------------------
-        Commands::Rm { all, output } => {
-            let root_folder = output
-                .as_ref()
-                .map(|path| PathBuf::from(path))
-                .unwrap_or_else(|| default_root.clone());
-
-            if let Err(e) = remove_output_folder(&root_folder.to_string_lossy(), *all) {
-                eprintln!("Error removing project files: {}", e);
             }
         }
 

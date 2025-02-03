@@ -1,6 +1,6 @@
 pub mod auto;
 pub mod chat;
-pub mod recommend;
+pub mod init;
 pub mod remove;
 pub mod render;
 pub mod save;
@@ -17,6 +17,9 @@ pub struct Args {
 
 #[derive(Subcommand, Debug)]
 pub enum Commands {
+    /// Initialize lila environment
+    Init,
+
     /// Extract pure source code from Markdown files.
     Tangle {
         /// Specify a Markdown file to extract code from. Cannot be used with --folder.
@@ -102,9 +105,6 @@ pub enum Commands {
         #[arg(short, long)]
         output: Option<String>,
     },
-
-    /// Provides a recommendation for the AI model based on system hardware.
-    Recommend,
 
     /// Chat subcommand
     Chat {
