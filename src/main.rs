@@ -11,8 +11,8 @@ mod commands;
 mod schema;
 mod utils;
 
-use commands::auto::{auto_format_code_in_folder, auto_format_code_in_markdown};
 use commands::chat::ChatArgs;
+use commands::edit::{edit_format_code_in_folder, edit_format_code_in_markdown};
 use commands::weave::{convert_file_to_markdown, convert_folder_to_markdown};
 use commands::{
     chat::run_chat, init::init as run_init, remove::*, render::*, save::*, tangle::*, Args,
@@ -146,17 +146,17 @@ fn main() {
             }
         }
 
-        // ------------------ Auto-Formatting Command ----------
-        Commands::Auto { file, folder } => {
+        // ------------------ Edit Command -------------------
+        Commands::Edit { file, folder } => {
             // Decide whether we’re formatting a single file or an entire folder:
             if let Some(file) = file {
                 // Single file
-                if let Err(e) = auto_format_code_in_markdown(file) {
+                if let Err(e) = edit_format_code_in_markdown(file) {
                     eprintln!("Error auto-formatting file {}: {}", file, e);
                 }
             } else if let Some(folder) = folder {
                 // Entire folder
-                if let Err(e) = auto_format_code_in_folder(folder) {
+                if let Err(e) = edit_format_code_in_folder(folder) {
                     eprintln!("Error auto-formatting folder {}: {}", folder, e);
                 }
             } else {

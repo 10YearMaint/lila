@@ -1,5 +1,5 @@
-pub mod auto;
 pub mod chat;
+pub mod edit;
 pub mod init;
 pub mod remove;
 pub mod render;
@@ -55,7 +55,7 @@ pub enum Commands {
     },
 
     /// Auto-format code blocks (Python, Rust, etc.) in a Markdown file *or* folder
-    Auto {
+    Edit {
         /// Specify a single Markdown file (conflicts with folder)
         #[arg(short, long, conflicts_with = "folder")]
         file: Option<String>,

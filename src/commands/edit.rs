@@ -115,7 +115,7 @@ fn format_code_snippet(code_lines: &[String], lang: &CodeLanguage) -> io::Result
 }
 
 /// Auto-format code blocks (Python, Rust, etc.) in a single Markdown file in-place.
-pub fn auto_format_code_in_markdown(file_path: &str) -> io::Result<()> {
+pub fn edit_format_code_in_markdown(file_path: &str) -> io::Result<()> {
     let path = Path::new(file_path);
     let file = File::open(&path)?;
     let reader = BufReader::new(file);
@@ -183,19 +183,19 @@ pub fn auto_format_code_in_markdown(file_path: &str) -> io::Result<()> {
 }
 
 /// Recursively auto-format code blocks in all `.md` files under `folder_path`.
-pub fn auto_format_code_in_folder(folder_path: &str) -> io::Result<()> {
+pub fn edit_format_code_in_folder(folder_path: &str) -> io::Result<()> {
     for entry in fs::read_dir(folder_path)? {
         let entry = entry?;
         let path = entry.path();
 
         if path.is_dir() {
             // Recursively handle subfolders
-            auto_format_code_in_folder(path.to_str().unwrap())?;
+            edit_format_code_in_folder(path.to_str().unwrap())?;
         } else if path.is_file() {
             // Only auto-format if it's a Markdown file
             if path.extension().and_then(|s| s.to_str()) == Some("md") {
                 println!("Auto-formatting {:?}", path.display());
-                if let Err(e) = auto_format_code_in_markdown(path.to_str().unwrap()) {
+                if let Err(e) = edit_format_code_in_markdown(path.to_str().unwrap()) {
                     eprintln!("Error formatting {}: {}", path.display(), e);
                 }
             }
