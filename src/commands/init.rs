@@ -1,8 +1,8 @@
 use colored::Colorize;
 use dirs::home_dir;
 use std::ffi::OsStr;
-use std::fs::{File, OpenOptions};
-use std::io::{self, BufRead, BufReader, Write};
+use std::fs::File;
+use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use sysinfo::System;
