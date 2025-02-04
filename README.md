@@ -83,13 +83,13 @@ lila weave --folder example --output book
 ```
 
 
-### 3. Auto Code Format Original Literate Code
+### 3. Edit Code Format Original Literate Code
 
-*lila* has the functionality to auto code format literated code and insert it back into its original markdown file inplace.
+*lila* has the functionality to edit code format literated code and insert it back into its original markdown file inplace.
 For this use the following command logic:
 
 ```bash
-lila auto --folder example
+lila edit --folder example
 ```
 
 ### 4. Markdown to HTML Translator
