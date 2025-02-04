@@ -1,4 +1,4 @@
-use anyhow::{Error, Result};
+use anyhow::Result;
 use diesel::prelude::*;
 use diesel::result::Error as DieselError;
 use dotenvy::dotenv;
@@ -7,9 +7,7 @@ use std::path::Path;
 
 use crate::commands::save::establish_connection;
 use crate::schema::{html_content, html_metadata};
-use crate::utils::database::models::{HtmlContent, HtmlMetadata};
 
-use hf_hub::{api::sync::Api, Repo, RepoType};
 use mistralrs::{
     IsqType, PagedAttentionMetaBuilder, Response, TextMessageRole, TextMessages, TextModelBuilder,
 };
@@ -19,23 +17,8 @@ use mistralrs::{
 // ==================================================
 #[derive(Debug)]
 pub struct ChatArgs {
-    pub cpu: bool,
-    pub tracing: bool,
-    pub verbose_prompt: bool,
     pub prompt: Option<String>,
-    pub temperature: Option<f64>,
-    pub top_p: Option<f64>,
-    pub seed: u64,
-    pub sample_len: usize,
     pub model_id: Option<String>,
-    pub model: String,
-    pub revision: Option<String>,
-    pub weight_file: Option<String>,
-    pub tokenizer: Option<String>,
-    pub quantized: bool,
-    pub repeat_penalty: f32,
-    pub repeat_last_n: usize,
-    pub dtype: Option<String>,
     pub no_db: bool,
 }
 
