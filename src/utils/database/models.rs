@@ -1,20 +1,20 @@
-use crate::schema::{html_content, html_metadata};
+use crate::schema::{file_content, metadata};
 use diesel::prelude::*;
 use diesel::Queryable;
 
-/// Represents a row in the `html_metadata` table
+/// Represents a row in the `metadata` table
 #[derive(Queryable, Insertable)]
-#[diesel(table_name = html_metadata)]
-pub struct HtmlMetadata {
+#[diesel(table_name = metadata)]
+pub struct Metadata {
     pub id: i32,
     pub file_path: String,
 }
 
-/// Represents a row in the `html_content` table
+/// Represents a row in the `file_content` table
 #[derive(Queryable, Insertable)]
-#[diesel(table_name = html_content)]
-pub struct HtmlContent {
-    // Same primary key as `html_metadata.id`
+#[diesel(table_name = file_content)]
+pub struct FileContent {
+    // Same primary key as `metadata.id`
     pub id: i32,
     pub content: String,
 }

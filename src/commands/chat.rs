@@ -6,7 +6,7 @@ use std::env;
 use std::path::Path;
 
 use crate::commands::save::establish_connection;
-use crate::schema::{html_content, html_metadata};
+use crate::schema::{file_content, metadata};
 
 use mistralrs::{
     IsqType, PagedAttentionMetaBuilder, Response, TextMessageRole, TextMessages, TextModelBuilder,
@@ -23,26 +23,26 @@ pub struct ChatArgs {
 }
 
 // =============================================
-// Helper function: Load all HTML data from DB
+// Helper function: Load all Markdown data from DB
 // =============================================
-fn load_all_html_data() -> Result<Vec<(String, String)>, DieselError> {
+fn load_all_markdown_data() -> Result<Vec<(String, String)>, DieselError> {
     // 1) Load environment to read LILA_OUTPUT_PATH
     dotenv().ok(); // This loads .env if found
 
     // 2) Grab the base folder from the .env variable
     let base_path = env::var("LILA_OUTPUT_PATH").map_err(|_| DieselError::NotFound)?;
 
-    // 3) Build the path to doc_pure/lila.db
-    let db_path = Path::new(&base_path).join("doc_pure").join("lila.db");
+    // 3) Build the path to db/lila.db
+    let db_path = Path::new(&base_path).join("db").join("lila.db");
     let db_path_str = db_path.to_string_lossy();
 
     // 4) Establish connection using existing function
     let mut conn = establish_connection(&db_path_str);
 
     // 5) Perform join on both tables -> (file_path, content)
-    let rows = html_metadata::table
-        .inner_join(html_content::table.on(html_content::id.eq(html_metadata::id)))
-        .select((html_metadata::file_path, html_content::content))
+    let rows = metadata::table
+        .inner_join(file_content::table.on(file_content::id.eq(metadata::id)))
+        .select((metadata::file_path, file_content::content))
         .load::<(String, String)>(&mut conn)?;
 
     Ok(rows)
@@ -56,7 +56,7 @@ pub async fn run_chat(args: ChatArgs) -> Result<()> {
     // Conditionally load DB data
     let db_content = if !args.no_db {
         // If user didn't disable DB, load data
-        match load_all_html_data() {
+        match load_all_markdown_data() {
             Ok(data) => {
                 // Join them into a single string
                 data.into_iter()
@@ -65,7 +65,7 @@ pub async fn run_chat(args: ChatArgs) -> Result<()> {
                     .join("\n\n")
             }
             Err(e) => {
-                eprintln!("Failed to load HTML data: {:?}", e);
+                eprintln!("Failed to load Markdown data: {:?}", e);
                 return Err(e.into());
             }
         }
@@ -99,7 +99,7 @@ pub async fn run_chat(args: ChatArgs) -> Result<()> {
             You are an AI agent with a specialty in programming.
             You do not provide information outside of this scope.
             If a question is not about programming, respond with, 'I can't assist you with that, sorry!'.
-            Here are some HTML documents from the DB. Use them to answer questions.
+            Here are some Markdown documents from the DB. Use them to answer questions.
             ",
         )
         .add_message(TextMessageRole::System, &db_content)

@@ -51,10 +51,10 @@ rustc install_windows.rs; if ($?) { .\install_windows.exe }
 You just want to chat with your literate code? Use this shortcut to get started:
 
 ```bash
-lila render --folder example --css src/css/style.css --disable-mermaid
+lila weave --folder example
 lila save
 lila chat \
-    --prompt "I know you got provided some HTML code. Can you say whats happening there? By which factor does the counter gets increased by?"
+    --prompt "I know you got provided some markdown code. Can you say whats happening there? In which file did we define some Rust math equations? Can you enhance these equations and return me the corresponding code?"
 ```
 
 ### 1. Extract Literate Code into normal Source Code
@@ -117,7 +117,7 @@ lila save
 lila chat \
     --prompt "Can you understand HTML code? Can you provide me an example code? With a button? And if I click the button every time, a counter gets increased by the number 2? Can you also add some css design within the HTML code?" \
     --no-db \
-    --model-id microsoft/Phi-3.5-mini-instruct
+    --model-id Qwen/Qwen2.5-Coder-3B-Instruct
 ```
 
 

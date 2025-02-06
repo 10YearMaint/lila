@@ -157,23 +157,64 @@ fn handle_weave(
             Ok(path) => Some(PathBuf::from(path).join("doc")),
             Err(_) => Some(default_root.join("doc")),
         })
-        .unwrap_or(default_root.join("doc"));
+        .unwrap_or_else(|| default_root.join("doc"));
 
     fs::create_dir_all(&root_folder)
         .unwrap_or_else(|e| panic!("Could not create output folder: {}", e));
 
+    // We'll accumulate *all* created/converted .md files here.
+    let mut all_markdown_paths = Vec::new();
+
     if let Some(file) = file {
+        // Weave a single file into .md
         let input_path = PathBuf::from(&file);
-        if let Err(e) = convert_file_to_markdown(&input_path, &root_folder) {
-            eprintln!("Error converting file {}: {}", input_path.display(), e);
+        match convert_file_to_markdown(&input_path, &root_folder) {
+            Ok(Some((md_out_path, _meta))) => {
+                // If a .md was actually generated
+                all_markdown_paths.push(md_out_path);
+            }
+            Ok(None) => {
+                println!(
+                    "Skipping file {} (already .md or something).",
+                    input_path.display()
+                );
+            }
+            Err(e) => eprintln!("Error converting file {}: {}", input_path.display(), e),
         }
     } else if let Some(folder) = folder {
-        if let Err(e) = convert_folder_to_markdown(&folder, &root_folder.to_string_lossy()) {
-            eprintln!("Error converting folder {}: {}", folder, e);
+        // Weave all code files in a folder into .md
+        match convert_folder_to_markdown(&folder, &root_folder.to_string_lossy()) {
+            Ok(md_paths) => {
+                // We'll get back a list of .md files that were generated/copied
+                all_markdown_paths = md_paths;
+            }
+            Err(e) => eprintln!("Error converting folder {}: {}", folder, e),
         }
     } else {
         eprintln!("No file or folder provided for conversion.");
+        return;
     }
+
+    // If we ended up with no .md files, just return
+    if all_markdown_paths.is_empty() {
+        println!("No Markdown files were generated or copied. Nothing to record.");
+        return;
+    }
+
+    // Otherwise, write them to `created_markdown_files.txt` so the "save" command can pick them up.
+    let created_files_list_path = root_folder.join("created_markdown_files.txt");
+    let mut f = File::create(&created_files_list_path)
+        .expect("Could not create created_markdown_files.txt");
+    for path in &all_markdown_paths {
+        writeln!(f, "{}", path.to_string_lossy())
+            .expect("Could not write to created_markdown_files.txt");
+    }
+
+    println!(
+        "{} Wrote list of .md files to {}",
+        "✔".green(),
+        created_files_list_path.display()
+    );
 }
 
 /// Auto-formats code blocks in a Markdown file or folder.
@@ -234,44 +275,41 @@ fn handle_render(
     }
 }
 
-/// Saves rendered HTML metadata to a SQLite database.
 fn handle_save(db: Option<String>, default_root: &Path) {
-    let doc_pure_folder = default_root.join("doc_pure");
-    let file_path = doc_pure_folder.join("created_html_files.txt");
+    let db_folder = default_root.join("db");
+    let db_path = db
+        .as_ref()
+        .map(PathBuf::from)
+        .unwrap_or_else(|| db_folder.join("lila.db"));
+    std::fs::create_dir_all(db_folder).expect("Could not create DB folder");
+
+    let mut conn = commands::save::establish_connection(&db_path.to_string_lossy());
+
+    let doc_folder = default_root.join("doc");
+    let file_path = doc_folder.join("created_markdown_files.txt");
 
     if !file_path.exists() {
         eprintln!(
-            "Error: '{}' does not exist. Please run the 'translate' command first.",
+            "Error: '{}' does not exist. Did you run the 'weave' step yet?",
             file_path.display()
         );
         std::process::exit(1);
     }
 
     let created_files =
-        fs::read_to_string(&file_path).expect("Unable to read created_html_files.txt");
-    let html_files: Vec<String> = created_files.lines().map(|s| s.to_string()).collect();
+        std::fs::read_to_string(&file_path).expect("Unable to read created_markdown_files.txt");
+    let files_to_save: Vec<String> = created_files.lines().map(|s| s.to_owned()).collect();
 
-    let db_path = db
-        .as_ref()
-        .map(PathBuf::from)
-        .unwrap_or_else(|| doc_pure_folder.join("lila.db"));
-
-    if let Some(parent) = db_path.parent() {
-        fs::create_dir_all(parent)
-            .unwrap_or_else(|e| panic!("Could not create database directory: {}", e));
-    }
-
-    let mut conn = commands::save::establish_connection(&db_path.to_string_lossy());
     if let Err(e) =
-        commands::save::save_html_metadata_to_db(&html_files, &mut conn, &db_path.to_string_lossy())
+        commands::save::save_files_to_db(&files_to_save, &mut conn, &db_path.to_string_lossy())
     {
-        eprintln!("Error saving HTML metadata to database: {}", e);
-    } else {
-        println!(
-            "Successfully saved HTML metadata to '{}'",
-            db_path.display()
-        );
+        eprintln!("Error saving Markdown files to DB: {e}");
     }
+
+    println!(
+        "Successfully saved md files to {}",
+        db_path.display()
+    );
 }
 
 /// Removes generated project files.

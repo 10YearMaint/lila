@@ -242,12 +242,15 @@ fn convert_folder_to_markdown_internal(
 /// converts/copies files, and **then** creates a single `book.md`
 /// listing all Markdown files that have front matter with
 /// `output_filename`, plus optional `brief` and `details`.
-pub fn convert_folder_to_markdown(input_folder: &str, output_folder: &str) -> io::Result<()> {
+pub fn convert_folder_to_markdown(
+    input_folder: &str,
+    output_folder: &str,
+) -> io::Result<Vec<PathBuf>> {
     // 1) Recursively gather all MD files that have front matter
     //    plus newly generated MD files that we know about.
     let generated_files = convert_folder_to_markdown_internal(input_folder, output_folder)?;
 
-    // 2) Group files by their top-level chapter (folder)
+    // 2) Group files by their top-level chapter (folder) for building `book.md`.
     let output_folder_path = PathBuf::from(output_folder);
     let mut chapters: HashMap<String, Vec<(PathBuf, MarkdownMeta)>> = HashMap::new();
 
@@ -262,7 +265,7 @@ pub fn convert_folder_to_markdown(input_folder: &str, output_folder: &str) -> io
             .components()
             .next()
             .map(|comp| comp.as_os_str().to_string_lossy().to_string())
-            .unwrap_or("Uncategorized".to_string());
+            .unwrap_or_else(|| "Uncategorized".to_string());
 
         chapters
             .entry(chapter)
@@ -283,14 +286,14 @@ pub fn convert_folder_to_markdown(input_folder: &str, output_folder: &str) -> io
     writeln!(book_md)?;
     writeln!(
         book_md,
-        "Below is a list of all Markdown files that define an `output_filename` in their front matter. Files are organized by chapters (folder names). If a file also has a `brief` or `details`, you'll see them in the respective tables.\n"
+        "Below is a list of all Markdown files that define an `output_filename` in \
+        their front matter (if present). They are organized by chapters (folder names). \
+        If a file also has a `brief` or `details`, you'll see them in the table.\n"
     )?;
 
     // Iterate over each chapter and write its table
     for (chapter_name, files) in sorted_chapters {
         writeln!(book_md, "## Chapter: {}\n", chapter_name)?;
-
-        // Start the table
         writeln!(
             book_md,
             "| **File Name** | **Path** | **Brief** | **Details** |"
@@ -301,25 +304,20 @@ pub fn convert_folder_to_markdown(input_folder: &str, output_folder: &str) -> io
         )?;
 
         for (md_file_path, meta) in files {
-            // Determine the relative path
             let relative_path = md_file_path
                 .strip_prefix(&output_folder_path)
                 .unwrap_or(&md_file_path)
                 .to_string_lossy();
 
-            // Prepare Brief column
             let brief = match &meta.brief {
                 Some(text) => format!("✅ {}", text),
                 None => "❌".to_string(),
             };
-
-            // Prepare Details column
             let details = match &meta.details {
                 Some(text) => format!("<details><summary>View Details</summary>{}</details>", text),
                 None => "❌".to_string(),
             };
 
-            // Write the table row
             writeln!(
                 book_md,
                 "| {} | [{}]({}) | {} | {} |",
@@ -327,7 +325,7 @@ pub fn convert_folder_to_markdown(input_folder: &str, output_folder: &str) -> io
             )?;
         }
 
-        writeln!(book_md)?; // Add an empty line after the table
+        writeln!(book_md)?; // extra line
     }
 
     println!(
@@ -336,5 +334,15 @@ pub fn convert_folder_to_markdown(input_folder: &str, output_folder: &str) -> io
         book_md_path.display()
     );
 
-    Ok(())
+    // 4) Prepare the list of final .md files to return,
+    //    i.e. everything from generated_files plus `book.md`.
+    let mut all_md_paths: Vec<PathBuf> = generated_files
+        .into_iter()
+        .map(|(path, _meta)| path)
+        .collect();
+
+    // Add the book.md path if you want to save it, too
+    all_md_paths.push(book_md_path);
+
+    Ok(all_md_paths)
 }

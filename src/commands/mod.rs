@@ -110,9 +110,9 @@ pub enum Commands {
         disable_mermaid: bool,
     },
 
-    /// Save the rendered code and HTML metadata into a SQLite database.
+    /// Save the weaved code and metadata into a SQLite database.
     Save {
-        /// Optional: Path to the SQLite database (default: <doc_pure>/lila.db)
+        /// Optional path to the SQLite database
         #[arg(short, long)]
         db: Option<String>,
     },

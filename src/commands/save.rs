@@ -1,5 +1,5 @@
-use crate::schema::{html_content, html_metadata};
-use crate::utils::database::models::HtmlMetadata;
+use crate::schema::{file_content, metadata};
+use crate::utils::database::models::Metadata;
 use colored::Colorize;
 use diesel::prelude::*;
 use diesel::result::Error;
@@ -48,7 +48,7 @@ fn run_migrations(database_url: &str) {
         .arg("run")
         .env("DATABASE_URL", database_url)
         .output()
-        .expect("Failed to execute migration command");
+        .expect("Failed to run migrations via Diesel CLI");
 
     if !output.status.success() {
         panic!(
@@ -58,81 +58,76 @@ fn run_migrations(database_url: &str) {
     }
 }
 
-/// Insert or update HTML files' metadata/content in the DB.
-pub fn save_html_metadata_to_db(
-    html_files: &[String],
+/// Generic function to insert or update any text files in the DB
+/// (whether they're HTML or Markdown).
+pub fn save_files_to_db(
+    file_paths: &[String],
     conn: &mut SqliteConnection,
     database_url: &str,
 ) -> Result<(), Error> {
-    // Alias each DSL to avoid `id` name collisions:
-    use html_content::dsl as ct;
-    use html_metadata::dsl as md;
+    // Bring in the DSL so we have access to the table and columns
+    use file_content::dsl as c;
+    use metadata::dsl as m;
 
-    // 1) Check if tables exist; if not, run migrations and re-connect.
-    if !table_exists(conn, "html_metadata") || !table_exists(conn, "html_content") {
-        tracing::info!(
-            "Tables 'html_metadata' or 'html_content' do not exist. Running migrations..."
-        );
+    // 1) Ensure the `metadata` and `file_content` tables exist
+    if !table_exists(conn, "metadata") || !table_exists(conn, "file_content") {
+        tracing::info!("Tables 'metadata' or 'file_content' do not exist. Running migrations...");
         run_migrations(database_url);
         *conn = establish_connection(database_url);
     }
 
-    // 2) Use a Diesel transaction for multiple inserts/updates.
-    conn.transaction::<(), Error, _>(|c| {
-        for path_str in html_files {
-            // Attempt to read file content
+    // 2) Use a transaction to insert/update all files at once
+    conn.transaction::<(), Error, _>(|trx_conn| {
+        for path_str in file_paths {
             let path_obj = Path::new(path_str);
-            let content_val = fs::read_to_string(path_obj).unwrap_or_else(|_| {
-                "<html><body><p>Failed to read HTML content.</p></body></html>".to_string()
-            });
+            let file_data = fs::read_to_string(path_obj)
+                .unwrap_or_else(|_| "<empty or unreadable>".to_string());
 
-            // Check if we already have a row in `html_metadata` for this file_path
-            let existing = md::html_metadata
-                .filter(md::file_path.eq(path_str))
-                .first::<HtmlMetadata>(c);
+            // Check if there's already a row in `metadata` for this file_path
+            let existing = m::metadata
+                .filter(m::file_path.eq(path_str))
+                .first::<Metadata>(trx_conn);
 
             match existing {
                 Ok(record) => {
-                    // UPDATE CASE: The record already exists in `html_metadata`.
-                    // Update the `content` in `html_content` referencing the same id:
-                    diesel::update(ct::html_content.find(record.id))
-                        .set(ct::content.eq(content_val))
-                        .execute(c)?;
+                    // Record already exists -> update the file_content table
+                    diesel::update(c::file_content.find(record.id))
+                        .set(c::content.eq(file_data))
+                        .execute(trx_conn)?;
 
-                    tracing::info!("Updated content for file_path '{}'", path_str);
+                    tracing::info!("Updated content for {}", path_str);
                 }
                 Err(diesel::result::Error::NotFound) => {
-                    // INSERT CASE: No row for this path -> Insert into `html_metadata` first.
-                    diesel::insert_into(md::html_metadata)
-                        .values(md::file_path.eq(path_str))
-                        .execute(c)?;
+                    // Insert new metadata row first
+                    diesel::insert_into(m::metadata)
+                        .values(m::file_path.eq(path_str))
+                        .execute(trx_conn)?;
 
-                    // Then fetch the new `id` from SQLite's last_insert_rowid().
+                    // Then fetch that new row's `id`
                     let row: LastInsertRowId =
-                        diesel::sql_query("SELECT last_insert_rowid() as last_insert_rowid")
-                            .get_result(c)?;
+                        sql_query("SELECT last_insert_rowid() as last_insert_rowid")
+                            .get_result(trx_conn)?;
 
-                    let new_id = row.last_insert_rowid as i32;
+                    // Insert content using that same `id`
+                    diesel::insert_into(c::file_content)
+                        .values((
+                            c::id.eq(row.last_insert_rowid as i32),
+                            c::content.eq(file_data),
+                        ))
+                        .execute(trx_conn)?;
 
-                    // Insert into `html_content` with the same `id`.
-                    diesel::insert_into(ct::html_content)
-                        .values((ct::id.eq(new_id), ct::content.eq(content_val)))
-                        .execute(c)?;
-
-                    tracing::info!("Inserted metadata and content for '{}'", path_str);
+                    tracing::info!("Inserted metadata + content for {}", path_str);
                 }
                 Err(e) => {
-                    // Some other database error
-                    tracing::error!("Error querying metadata for '{}': {:?}", path_str, e);
+                    tracing::error!("Error looking up metadata for '{}': {:?}", path_str, e);
                     return Err(e);
                 }
             }
         }
 
-        println!(
-            "{}",
-            "Successfully saved HTML metadata and content to the database.".green()
-        );
         Ok(())
-    })
+    })?;
+
+    println!("{}", "All files saved successfully!".green());
+    Ok(())
 }

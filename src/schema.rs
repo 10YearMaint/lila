@@ -1,7 +1,7 @@
 // @generated automatically by Diesel CLI.
 
 diesel::table! {
-    html_content (rowid) {
+    file_content (rowid) {
         rowid -> Integer,
         id -> Integer,
         content -> Text,
@@ -9,12 +9,15 @@ diesel::table! {
 }
 
 diesel::table! {
-    html_metadata (id) {
+    metadata (id) {
         id -> Integer,
         file_path -> Text,
     }
 }
 
-diesel::joinable!(html_content -> html_metadata (id));
+diesel::joinable!(file_content -> metadata (id));
 
-diesel::allow_tables_to_appear_in_same_query!(html_content, html_metadata,);
+diesel::allow_tables_to_appear_in_same_query!(
+    file_content,
+    metadata,
+);
