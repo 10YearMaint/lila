@@ -24,15 +24,15 @@ Working with code:
     weave        Embed source code files back into Markdown format.
     edit         Auto-format code blocks in Markdown
 
+Code Literat:
+    save         Save the Markdown code into a SQLite database
+    chat         Chat with your Code Literat
+
 Documentation:
     render       Convert Markdown files with embedded code into HTML
 
 Project management:
-    save         Save the rendered code and HTML metadata into a SQLite database
     rm           Remove files created by `tangle` and `render`. Use `-a` to remove all output folders
-
-Chat:
-    chat         Chat subcommand
 
 {after-help}";
 
