@@ -103,9 +103,9 @@ lila render --folder example --css src/css/style.css --disable-mermaid
 
 If you don't specify a CSS file, the default CSS of src/css/style.css will be used.
 
-### 5. Save HTML files in a Database
+### 5. Save Markdown files in a Database
 
-If you want to save the meta data of the generated HTML files to a SQLite database, you can use the following command:
+If you want to save the data of the Markdown files to a SQLite database, you can use the following command:
 
 ```bash
 lila save
