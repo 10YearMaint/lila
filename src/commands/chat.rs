@@ -33,7 +33,7 @@ fn load_all_markdown_data() -> Result<Vec<(String, String)>, DieselError> {
     let base_path = env::var("LILA_OUTPUT_PATH").map_err(|_| DieselError::NotFound)?;
 
     // 3) Build the path to db/lila.db
-    let db_path = Path::new(&base_path).join("db").join("lila.db");
+    let db_path = Path::new(&base_path).join("lila.db");
     let db_path_str = db_path.to_string_lossy();
 
     // 4) Establish connection using existing function

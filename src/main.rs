@@ -276,12 +276,10 @@ fn handle_render(
 }
 
 fn handle_save(db: Option<String>, default_root: &Path) {
-    let db_folder = default_root.join("db");
     let db_path = db
         .as_ref()
         .map(PathBuf::from)
-        .unwrap_or_else(|| db_folder.join("lila.db"));
-    std::fs::create_dir_all(db_folder).expect("Could not create DB folder");
+        .unwrap_or_else(|| default_root.join("lila.db"));
 
     let mut conn = commands::save::establish_connection(&db_path.to_string_lossy());
 
@@ -306,10 +304,7 @@ fn handle_save(db: Option<String>, default_root: &Path) {
         eprintln!("Error saving Markdown files to DB: {e}");
     }
 
-    println!(
-        "Successfully saved md files to {}",
-        db_path.display()
-    );
+    println!("Successfully saved md files to {}", db_path.display());
 }
 
 /// Removes generated project files.
