@@ -48,7 +48,7 @@ fn main() {
             mermaid,
             disable_mermaid,
         } => handle_render(folder, output, css, mermaid, disable_mermaid, &default_root),
-        Commands::Save { db } => handle_save(db, &default_root),
+        Commands::Save { db, input } => handle_save(db, &default_root, input),
         Commands::Rm { all, output } => handle_rm(all, output, &default_root),
         Commands::Chat {
             prompt,
@@ -275,7 +275,7 @@ fn handle_render(
     }
 }
 
-fn handle_save(db: Option<String>, default_root: &Path) {
+fn handle_save(db: Option<String>, default_root: &Path, input: Option<String>) {
     let db_path = db
         .as_ref()
         .map(PathBuf::from)
@@ -283,7 +283,11 @@ fn handle_save(db: Option<String>, default_root: &Path) {
 
     let mut conn = commands::save::establish_connection(&db_path.to_string_lossy());
 
-    let doc_folder = default_root.join("doc");
+    let doc_folder = input
+        .as_ref()
+        .map(PathBuf::from)
+        .unwrap_or_else(|| default_root.join("doc"));
+
     let file_path = doc_folder.join("created_markdown_files.txt");
 
     if !file_path.exists() {

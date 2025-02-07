@@ -115,6 +115,10 @@ pub enum Commands {
         /// Optional path to the SQLite database
         #[arg(short, long)]
         db: Option<String>,
+
+        /// Specify the input directory of the Markdown files.
+        #[arg(short, long, value_name = "INPUT_DIR")]
+        input: Option<String>,
     },
 
     /// Remove files created by `tangle` and `render`. Use `-a` to remove all output folders.

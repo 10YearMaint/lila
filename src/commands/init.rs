@@ -1,7 +1,7 @@
 use colored::Colorize;
 use dirs::home_dir;
 use std::ffi::OsStr;
-use std::fs::File;
+use std::fs::{create_dir_all, File};
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
@@ -177,6 +177,9 @@ pub fn init() -> io::Result<()> {
     } else {
         PathBuf::from(path_input)
     };
+
+    // Ensure that the final_path (and parents) are created
+    create_dir_all(&final_path)?;
 
     // Write LILA_OUTPUT_PATH to .env
     update_env_value("LILA_OUTPUT_PATH", &final_path.to_string_lossy())?;

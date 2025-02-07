@@ -51,8 +51,9 @@ rustc install_windows.rs; if ($?) { .\install_windows.exe }
 You just want to chat with your literate code? Use this shortcut to get started:
 
 ```bash
-lila weave --folder example
-lila save
+lila init
+lila weave --folder example --output book
+lila save --input book
 lila chat \
     --prompt "I know you got provided some markdown code. Can you say whats happening there? In which file did we define some Rust math equations? Can you enhance these equations and return me the corresponding code?"
 ```
