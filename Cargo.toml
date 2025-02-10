@@ -14,7 +14,7 @@ diesel_migrations = "~2.2"
 dirs = "~6.0"
 dotenvy = "~0.15"
 hf-hub = "~0.4"
-mistralrs = { git = "https://github.com/EricLBuehler/mistral.rs.git" }
+mistralrs = { git = "https://github.com/EricLBuehler/mistral.rs.git", tag = "v0.4.0"}
 pulldown-cmark = "~0.12"
 regex = "~1.11"
 serde = { version = "~1.0", features = ["derive"] }
