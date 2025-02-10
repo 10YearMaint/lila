@@ -107,7 +107,7 @@ pub fn translate_markdown_folder(
     )?;
 
     // Write HTML file paths to a text file
-    let output_path = PathBuf::from(doc_folder).join("created_html_files.txt");
+    let output_path = PathBuf::from(doc_folder).join("created_markdown_files.txt");
     let mut file = std::fs::File::create(&output_path)?;
     for path in html_paths {
         writeln!(file, "{}", path)?;
