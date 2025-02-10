@@ -18,7 +18,7 @@ use commands::tangle::{extract_code_from_folder, extract_code_from_markdown};
 use commands::weave::{convert_file_to_markdown, convert_folder_to_markdown};
 use commands::{Args, Commands};
 use utils::database::db;
-use utils::{env::ensure_pandoc_installed, utils::process_protocol_aimm};
+use utils::utils::process_protocol_aimm;
 
 fn main() {
     // Parse CLI args and load .env
@@ -263,11 +263,6 @@ fn handle_render(
 
     fs::create_dir_all(&root_folder)
         .unwrap_or_else(|e| panic!("Could not create output folder: {}", e));
-
-    if !ensure_pandoc_installed() {
-        eprintln!("Pandoc is not installed. Please install Pandoc to use this tool.");
-        std::process::exit(1);
-    }
 
     let css_path = css.unwrap_or_else(|| "src/css/style.css".to_string());
     let mermaid_path = if disable_mermaid {
