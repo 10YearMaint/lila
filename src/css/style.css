@@ -4,24 +4,23 @@ body {
     color: #333;
     background: #f4f4f4;
     margin: 0;
-    padding: 20px;
+    padding: 0;
 }
 
 .container {
-    max-width: 800px;
     width: 100%;
-    margin: 0 auto; /* Center the container */
+    margin: 0;
     background: #fff;
     padding: 20px;
-    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    box-shadow: none;
 }
 
-code.cb-code {
+.cb-code {
     font-family: 'Consolas', 'Courier New', monospace;
-    background-color: #eee;
-    border: 1px solid #ddd;
-    padding: 5px;
-    display: block;
+    background-color: #f6f8fa !important;
+    border: 1px solid #e1e4e8 !important;
+    border-radius: 6px;
+    padding: 16px;
     overflow-x: auto;
 }
 

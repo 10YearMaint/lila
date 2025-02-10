@@ -82,7 +82,12 @@ fn highlight_code_blocks(html: &str) -> String {
                 .get("InspiredGitHub")
                 .unwrap_or_else(|| &THEME_SET.themes["base16-ocean.dark"]);
             match highlighted_html_for_string(&code, &SYNTAX_SET, syntax, theme) {
-                Ok(highlighted) => highlighted,
+                Ok(highlighted) => {
+                    // Insert our custom class "cb-code" into the <pre> tag so that our CSS can style it.
+                    let highlighted_with_class =
+                        highlighted.replace("<pre", "<pre class=\"cb-code\"");
+                    highlighted_with_class
+                }
                 Err(_) => caps.get(0).unwrap().as_str().to_string(),
             }
         }
