@@ -16,10 +16,6 @@ Picture a specialized AI “literate” that holds the entire project in its mem
 1. Create a free account at https://huggingface.co to download and access their model ecosystem.
 2. Create an Access Token on the HuggingFace webpage. Store it in the .env file of this lila project like this: HUGGINGFACEHUB_API_TOKEN=SecretKey
 3. Install *Pandoc*
-4. Install the Command-line tool for Rust ORM *Diesel* on your system and run
-```bash
-diesel migration run
-```
 
 
 ## Installation

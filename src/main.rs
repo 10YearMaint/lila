@@ -17,6 +17,7 @@ use commands::render::translate_markdown_folder;
 use commands::tangle::{extract_code_from_folder, extract_code_from_markdown};
 use commands::weave::{convert_file_to_markdown, convert_folder_to_markdown};
 use commands::{Args, Commands};
+use utils::database::db;
 use utils::{env::ensure_pandoc_installed, utils::process_protocol_aimm};
 
 fn main() {
@@ -25,6 +26,16 @@ fn main() {
     dotenvy::dotenv().ok();
 
     let default_root = get_default_root();
+    let db_path = default_root.join("lila.db");
+
+    // Make sure the directory for it exists
+    fs::create_dir_all(&default_root)
+        .unwrap_or_else(|_| panic!("Could not create directory {:?}", default_root));
+
+    // 2. Establish a connection and run migrations once
+    let db_url = db_path.to_string_lossy().to_string();
+    let mut conn = db::establish_connection(&db_url);
+    db::run_migrations(&mut conn);
 
     // Dispatch the command using dedicated helper functions.
     match args.command {
