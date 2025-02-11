@@ -1,3 +1,4 @@
+/* surrounding body */
 body {
     font-family: "Open Sans", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
     line-height: 1.6;
@@ -7,6 +8,7 @@ body {
     padding: 0;
 }
 
+/* container to embed the markdown content into */
 .container {
     width: 90%;
     margin: 0px auto; /* centered, with top margin */
