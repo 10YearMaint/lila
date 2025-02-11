@@ -5,7 +5,7 @@ use regex::Regex;
 use serde::Deserialize;
 use std::fs::{self, File};
 use std::io::{self, Write};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use syntect::highlighting::ThemeSet;
 use syntect::html::highlighted_html_for_string;
 use syntect::parsing::SyntaxSet;
@@ -102,10 +102,13 @@ fn highlight_code_blocks(html: &str) -> String {
 /// 4. Applies syntax highlighting (or leaves Mermaid blocks untouched).
 /// 5. Wraps the HTML in a complete document with inlined CSS.
 /// 6. Optionally injects a local Mermaid.js script.
-/// 7. Writes the result to the specified output path.
+/// 7. Optionally injects a navigation bar linking back to "book.html" (using a relative link computed
+///    from the file’s location to the top-level docs folder).
+/// 8. Writes the result to the specified output path.
 pub fn generate_html_from_markdown(
     input_path: &str,
     output_path: &str,
+    root_doc_folder: &str,
     css_path: &str,
     mermaid_js_path: Option<&str>,
     book_render: bool,
@@ -139,6 +142,42 @@ pub fn generate_html_from_markdown(
     // Read custom CSS (if unavailable, use an empty string).
     let css_content = fs::read_to_string(css_path).unwrap_or_default();
 
+    // When book_render is active, compute a relative "Home" link from the current file’s folder to the
+    // top-level docs folder (which contains book.html).
+    let nav_bar = if book_render {
+        // Get the directory of the current output file.
+        let output_parent = Path::new(output_path)
+            .parent()
+            .expect("Output file should have a parent directory");
+        let root_doc = Path::new(root_doc_folder);
+
+        // Determine how many levels deep this file is relative to the root docs folder.
+        let home_link = if let Ok(relative) = output_parent.strip_prefix(root_doc) {
+            // For each component in the remainder, add a "../"
+            let count = relative.components().count();
+            let mut link = String::new();
+            for _ in 0..count {
+                link.push_str("../");
+            }
+            link.push_str("book.html");
+            link
+        } else {
+            // Fallback (should not happen if all files are within root_doc_folder)
+            "book.html".to_string()
+        };
+
+        format!(
+            r#"
+<nav class="navbar" style="padding: 1em; background: #eee; margin-bottom: 1em;">
+  <a href="{}" style="text-decoration: none; font-weight: bold;">Home</a>
+</nav>
+"#,
+            home_link
+        )
+    } else {
+        String::new()
+    };
+
     // Build the complete HTML document, using the title from the front matter.
     let mut complete_html = format!(
         r#"<!DOCTYPE html>
@@ -152,6 +191,7 @@ pub fn generate_html_from_markdown(
   </style>
 </head>
 <body>
+  {nav_bar}
   <div class="container my-5">
     {html_body}
   </div>
@@ -160,10 +200,11 @@ pub fn generate_html_from_markdown(
         css_content = css_content,
         html_body = html_body,
         title = title,
+        nav_bar = nav_bar,
     );
 
     if book_render {
-        // This regex finds href attributes that point to .md files.
+        // This regex finds href attributes that point to .md files and replaces them with .html links.
         let re_md = Regex::new(r#"href="([^"]+?)\.md""#).unwrap();
         complete_html = re_md
             .replace_all(&complete_html, r#"href="$1.html""#)
@@ -225,6 +266,9 @@ fn clean_mermaid_code_tags(html_file_path: &str) -> io::Result<()> {
 
 /// Recursively processes all Markdown files in a folder (and its subfolders), generating corresponding HTML files.
 /// Also writes a log file listing all generated HTML file paths.
+///
+/// The `doc_folder` parameter is the current output folder, while `root_doc_folder` should always be the
+/// top-level docs folder (where book.html resides).
 pub fn translate_markdown_folder(
     folder_path: &str,
     doc_folder: &str,
@@ -236,6 +280,7 @@ pub fn translate_markdown_folder(
     translate_markdown_folder_internal(
         folder_path,
         doc_folder,
+        doc_folder, // pass doc_folder as the root (top-level) docs folder
         css_path,
         mermaid_js_path,
         book_render,
@@ -251,9 +296,13 @@ pub fn translate_markdown_folder(
 }
 
 /// Internal helper that recursively processes folders.
+///
+/// - `doc_folder` is the current output folder for the files in this recursion,
+/// - `root_doc_folder` remains the same for all recursions (i.e. the top-level folder where book.html is).
 fn translate_markdown_folder_internal(
     folder_path: &str,
     doc_folder: &str,
+    root_doc_folder: &str,
     css_path: &str,
     mermaid_js_path: Option<&str>,
     book_render: bool,
@@ -264,6 +313,7 @@ fn translate_markdown_folder_internal(
         let path = entry.path();
 
         if path.is_dir() {
+            // Compute the subfolder inside the current doc_folder.
             let sub_doc_folder = PathBuf::from(doc_folder).join(
                 path.file_name()
                     .expect("Directory should have a valid name"),
@@ -272,6 +322,7 @@ fn translate_markdown_folder_internal(
             translate_markdown_folder_internal(
                 path.to_str().unwrap(),
                 sub_doc_folder.to_str().unwrap(),
+                root_doc_folder,
                 css_path,
                 mermaid_js_path,
                 book_render,
@@ -290,6 +341,7 @@ fn translate_markdown_folder_internal(
             if let Err(e) = generate_html_from_markdown(
                 path.to_str().unwrap(),
                 html_output_path.to_str().unwrap(),
+                root_doc_folder,
                 css_path,
                 mermaid_js_path,
                 book_render,

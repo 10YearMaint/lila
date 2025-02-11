@@ -93,7 +93,7 @@ lila edit --folder example
 If you want to create HTML files from the markdown files, you can use the following command:
 
 ```bash
-lila render --folder example --css src/css/style.css --mermaid src/js/mermaid.min.js
+lila render --folder book --output html_book --css src/css/style.css --mermaid src/js/mermaid.min.js --book-render
 lila render --folder example --css src/css/style.css --disable-mermaid
 ```
 
