@@ -79,8 +79,8 @@ fn highlight_code_blocks(html: &str) -> String {
                 .unwrap_or_else(|| SYNTAX_SET.find_syntax_plain_text());
             let theme = THEME_SET
                 .themes
-                .get("InspiredGitHub")
-                .unwrap_or_else(|| &THEME_SET.themes["base16-ocean.dark"]);
+                .get("Solarized (light)")
+                .unwrap_or_else(|| &THEME_SET.themes["base16-eighties.dark"]);
             match highlighted_html_for_string(&code, &SYNTAX_SET, syntax, theme) {
                 Ok(highlighted) => {
                     // Insert our custom class "cb-code" into the <pre> tag so that our CSS can style it.
@@ -137,27 +137,26 @@ pub fn generate_html_from_markdown(
     let html_body = highlight_code_blocks(&html_body_raw);
     // Read custom CSS (if unavailable, use an empty string).
     let css_content = fs::read_to_string(css_path).unwrap_or_default();
-
     // Build the complete HTML document, using the title from the front matter.
     let complete_html = format!(
         r#"<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{}</title>
-  <style>
-    /* Inlined custom CSS */
-    {}
-  </style>
-</head>
-<body>
-  <div class="container">
-    {}
-  </div>
-</body>
-</html>"#,
-        title, css_content, html_body
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>{title}</title>
+      <style>
+        {css_content}
+      </style>
+    </head>
+    <body>
+      <div class="container my-5">
+        {html_body}
+      </div>
+    </body>
+    </html>"#,
+        css_content = css_content,
+        html_body = html_body
     );
 
     // Write the generated HTML to the output file.

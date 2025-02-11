@@ -1,5 +1,5 @@
 body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-family: "Open Sans", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
     line-height: 1.6;
     color: #333;
     background: #f4f4f4;
@@ -8,27 +8,49 @@ body {
 }
 
 .container {
-    width: 100%;
-    margin: 0;
+    width: 90%;
+    margin: 0px auto; /* centered, with top margin */
     background: #fff;
     padding: 20px;
-    box-shadow: none;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
 }
 
-.cb-code {
-    font-family: 'Consolas', 'Courier New', monospace;
-    background-color: #f6f8fa !important;
-    border: 1px solid #e1e4e8 !important;
-    border-radius: 6px;
-    padding: 16px;
-    overflow-x: auto;
+header {
+    padding: 10px 0;
+    border-bottom: 1px solid #ddd;
+    margin-bottom: 20px;
+}
+
+header h1 {
+    font-size: 2.5rem;
+    font-weight: 600;
+}
+
+main {
+    padding-bottom: 20px;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    margin: 1.5rem 0 0.5rem;
+    line-height: 1.2;
+}
+
+p {
+    margin-bottom: 1rem;
 }
 
 ul, ol {
-    padding-left: 20px; 
+    padding-left: 20px;
     margin: 10px 0;
 }
 
 li {
     margin-bottom: 5px;
+}
+
+.cb-code {
+    font-family: 'Consolas', monospace;
+    border-radius: 6px;
+    padding: 8px;
+    overflow-x: auto;
 }
