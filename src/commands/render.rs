@@ -108,6 +108,7 @@ pub fn generate_html_from_markdown(
     output_path: &str,
     css_path: &str,
     mermaid_js_path: Option<&str>,
+    book_render: bool,
 ) -> io::Result<()> {
     // Read the Markdown file.
     let markdown_content = fs::read_to_string(input_path)?;
@@ -137,30 +138,40 @@ pub fn generate_html_from_markdown(
     let html_body = highlight_code_blocks(&html_body_raw);
     // Read custom CSS (if unavailable, use an empty string).
     let css_content = fs::read_to_string(css_path).unwrap_or_default();
+
     // Build the complete HTML document, using the title from the front matter.
-    let complete_html = format!(
+    let mut complete_html = format!(
         r#"<!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="utf-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>{title}</title>
-      <style>
-        {css_content}
-      </style>
-    </head>
-    <body>
-      <div class="container my-5">
-        {html_body}
-      </div>
-    </body>
-    </html>"#,
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{title}</title>
+  <style>
+    {css_content}
+  </style>
+</head>
+<body>
+  <div class="container my-5">
+    {html_body}
+  </div>
+</body>
+</html>"#,
         css_content = css_content,
-        html_body = html_body
+        html_body = html_body,
+        title = title,
     );
 
+    if book_render {
+        // This regex finds href attributes that point to .md files.
+        let re_md = Regex::new(r#"href="([^"]+?)\.md""#).unwrap();
+        complete_html = re_md
+            .replace_all(&complete_html, r#"href="$1.html""#)
+            .to_string();
+    }
+
     // Write the generated HTML to the output file.
-    fs::write(output_path, complete_html)?;
+    fs::write(output_path, &complete_html)?;
 
     // If a Mermaid.js file is provided, inject it and clean up any extra code tags.
     if let Some(mermaid_js_path) = mermaid_js_path {
@@ -214,12 +225,12 @@ fn clean_mermaid_code_tags(html_file_path: &str) -> io::Result<()> {
 
 /// Recursively processes all Markdown files in a folder (and its subfolders), generating corresponding HTML files.
 /// Also writes a log file listing all generated HTML file paths.
-/// The optional `mermaid_js_path` is forwarded to enable Mermaid.js injection.
 pub fn translate_markdown_folder(
     folder_path: &str,
     doc_folder: &str,
     css_path: &str,
     mermaid_js_path: Option<&str>,
+    book_render: bool,
 ) -> io::Result<()> {
     let mut html_paths: Vec<String> = Vec::new();
     translate_markdown_folder_internal(
@@ -227,6 +238,7 @@ pub fn translate_markdown_folder(
         doc_folder,
         css_path,
         mermaid_js_path,
+        book_render,
         &mut html_paths,
     )?;
 
@@ -244,6 +256,7 @@ fn translate_markdown_folder_internal(
     doc_folder: &str,
     css_path: &str,
     mermaid_js_path: Option<&str>,
+    book_render: bool,
     html_paths: &mut Vec<String>,
 ) -> io::Result<()> {
     for entry in fs::read_dir(folder_path)? {
@@ -261,6 +274,7 @@ fn translate_markdown_folder_internal(
                 sub_doc_folder.to_str().unwrap(),
                 css_path,
                 mermaid_js_path,
+                book_render,
                 html_paths,
             )?;
         } else if path.is_file()
@@ -278,6 +292,7 @@ fn translate_markdown_folder_internal(
                 html_output_path.to_str().unwrap(),
                 css_path,
                 mermaid_js_path,
+                book_render,
             ) {
                 eprintln!(
                     "{} Error generating HTML for {}: {}",

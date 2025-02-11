@@ -108,6 +108,9 @@ pub enum Commands {
         /// Optional: Disable Mermaid.js injection
         #[arg(long, default_value_t = false)]
         disable_mermaid: bool,
+        /// Optional: Replace markdown (.md) links with HTML (.html) links (for book-style indexes)
+        #[arg(long, default_value_t = false)]
+        book_render: bool,
     },
 
     /// Save the weaved code and metadata into a SQLite database.

@@ -58,7 +58,16 @@ fn main() {
             css,
             mermaid,
             disable_mermaid,
-        } => handle_render(folder, output, css, mermaid, disable_mermaid, &default_root),
+            book_render,
+        } => handle_render(
+            folder,
+            output,
+            css,
+            mermaid,
+            disable_mermaid,
+            book_render,
+            &default_root,
+        ),
         Commands::Save { db, input } => handle_save(db, &default_root, input),
         Commands::Rm { all, output } => handle_rm(all, output, &default_root),
         Commands::Chat {
@@ -250,6 +259,7 @@ fn handle_render(
     css: Option<String>,
     mermaid: Option<String>,
     disable_mermaid: bool,
+    book_render: bool,
     default_root: &Path,
 ) {
     let root_folder = output
@@ -276,6 +286,7 @@ fn handle_render(
         &root_folder.to_string_lossy(),
         &css_path,
         mermaid_path.as_ref().map(|s| s.as_str()),
+        book_render,
     ) {
         eprintln!("Error translating markdown: {}", e);
     }
