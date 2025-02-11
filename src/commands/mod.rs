@@ -145,5 +145,8 @@ pub enum Commands {
         /// Disable loading data from the DB
         #[arg(long, default_value_t = false)]
         no_db: bool,
+        /// Optional: Specify a Markdown file whose content should be used as context for the chat.
+        #[arg(long)]
+        file: Option<String>,
     },
 }

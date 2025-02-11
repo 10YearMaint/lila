@@ -74,7 +74,8 @@ fn main() {
             prompt,
             model_id,
             no_db,
-        } => handle_chat(prompt, model_id, no_db),
+            file,
+        } => handle_chat(prompt, model_id, no_db, file),
     }
 }
 
@@ -292,6 +293,7 @@ fn handle_render(
     }
 }
 
+/// Saves Markdown file metadata to the DB.
 fn handle_save(db: Option<String>, default_root: &Path, input: Option<String>) {
     let db_path = db
         .as_ref()
@@ -339,12 +341,18 @@ fn handle_rm(all: bool, output: Option<String>, default_root: &Path) {
     }
 }
 
-/// Constructs a ChatArgs struct and runs the chat subcommand.
-fn handle_chat(prompt: Option<String>, model_id: Option<String>, no_db: bool) {
+/// Constructs a ChatArgs struct (including the optional file parameter) and runs the chat subcommand.
+fn handle_chat(
+    prompt: Option<String>,
+    model_id: Option<String>,
+    no_db: bool,
+    file: Option<String>,
+) {
     let chat_args = ChatArgs {
         prompt,
         model_id,
         no_db,
+        file,
     };
     if let Err(e) = commands::chat::run_chat(chat_args) {
         eprintln!("Error running chat: {}", e);

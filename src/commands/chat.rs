@@ -3,6 +3,7 @@ use diesel::prelude::*;
 use diesel::result::Error as DieselError;
 use dotenvy::dotenv;
 use std::env;
+use std::fs;
 use std::path::Path;
 
 use crate::commands::save::establish_connection;
@@ -20,6 +21,7 @@ pub struct ChatArgs {
     pub prompt: Option<String>,
     pub model_id: Option<String>,
     pub no_db: bool,
+    pub file: Option<String>,
 }
 
 // =============================================
@@ -53,12 +55,16 @@ fn load_all_markdown_data() -> Result<Vec<(String, String)>, DieselError> {
 // =============================================
 #[tokio::main]
 pub async fn run_chat(args: ChatArgs) -> Result<()> {
-    // Conditionally load DB data
-    let db_content = if !args.no_db {
-        // If user didn't disable DB, load data
+    // Determine the context content.
+    // If a file is provided, read that file's content from disk.
+    // Otherwise, load all markdown data from the DB.
+    let context_content = if let Some(ref file_path) = args.file {
+        // Read the file (you might want to add error handling if the file isn’t found)
+        fs::read_to_string(file_path)?
+    } else if !args.no_db {
         match load_all_markdown_data() {
             Ok(data) => {
-                // Join them into a single string
+                // Join all files into a single context string.
                 data.into_iter()
                     .map(|(file_path, content)| format!("File: {}\n{}", file_path, content))
                     .collect::<Vec<_>>()
@@ -70,10 +76,11 @@ pub async fn run_chat(args: ChatArgs) -> Result<()> {
             }
         }
     } else {
-        // No DB was requested
+        // If no DB is requested and no file provided, use an empty context.
         String::new()
     };
 
+    // Build the prompt. (Abort if none is provided.)
     let prompt = match &args.prompt {
         Some(p) => p,
         None => anyhow::bail!("No prompt provided. Cannot run chat."),
@@ -92,17 +99,25 @@ pub async fn run_chat(args: ChatArgs) -> Result<()> {
         .build()
         .await?;
 
+    // Construct messages. Notice that if a file was provided, we explain that in the system message.
+    let system_msg = if args.file.is_some() {
+        "You are an AI agent with a specialty in programming.
+        You do not provide information outside of this scope.
+        If a question is not about programming, respond with, 'I can't assist you with that, sorry!'.
+        Below is the content of a specific Markdown file. Use it to answer the user's question.
+        "
+    } else {
+        "
+        You are an AI agent with a specialty in programming.
+        You do not provide information outside of this scope.
+        If a question is not about programming, respond with, 'I can't assist you with that, sorry!'.
+        Here are several Markdown documents from the database. Use them to answer the user's question.
+        "
+    };
+
     let messages = TextMessages::new()
-        .add_message(
-            TextMessageRole::System,
-            "
-            You are an AI agent with a specialty in programming.
-            You do not provide information outside of this scope.
-            If a question is not about programming, respond with, 'I can't assist you with that, sorry!'.
-            Here are some Markdown documents from the DB. Use them to answer questions.
-            ",
-        )
-        .add_message(TextMessageRole::System, &db_content)
+        .add_message(TextMessageRole::System, system_msg)
+        .add_message(TextMessageRole::System, &context_content)
         .add_message(TextMessageRole::User, prompt);
 
     let mut stream = model.stream_chat_request(messages).await?;

@@ -188,6 +188,20 @@ pub fn generate_html_from_markdown(
   <title>{title}</title>
   <style>
     {css_content}
+    /* Additional styles for the chatbot widget */
+    .chatbot {{
+      margin-top: 2em;
+      padding: 1em;
+      border: 1px solid #ccc;
+      background: #f9f9f9;
+    }}
+    .chatbot textarea {{
+      width: 100%;
+      height: 4em;
+    }}
+    .chatbot button {{
+      margin-top: 0.5em;
+    }}
   </style>
 </head>
 <body>
@@ -195,12 +209,31 @@ pub fn generate_html_from_markdown(
   <div class="container my-5">
     {html_body}
   </div>
+  <!-- Chatbot Widget -->
+  <div class="chatbot">
+    <p><strong>Chat about this document</strong></p>
+    <p>Enter your question below and click "Chat".</p>
+    <textarea id="chat-input" placeholder="Your question..."></textarea>
+    <br>
+    <button onclick="startChat()">Chat</button>
+    <div id="chat-output" style="margin-top: 1em; font-family: monospace;"></div>
+  </div>
+  <script>
+    function startChat() {{
+      var input = document.getElementById('chat-input').value;
+      // For now, we simply instruct the user to use the CLI.
+      // You can replace this with an AJAX call to a chat API if available.
+      var command = 'lila chat --file "{md_file}" --prompt "' + input.replace(/"/g, '\\"') + '"';
+      document.getElementById('chat-output').innerText = "To chat about this document, run the following command in your terminal:\n\n" + command;
+    }}
+  </script>
 </body>
 </html>"#,
         css_content = css_content,
         html_body = html_body,
         title = title,
         nav_bar = nav_bar,
+        md_file = input_path,
     );
 
     if book_render {
