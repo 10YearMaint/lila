@@ -105,6 +105,9 @@ pub enum Commands {
         /// Optional: Mermaid.js file for diagram rendering
         #[arg(short, long)]
         mermaid: Option<String>,
+        /// Optional: Mathjax.js for latex rendering
+        #[arg(short, long)]
+        mathjax: Option<String>,
         /// Optional: Disable Mermaid.js injection
         #[arg(long, default_value_t = false)]
         disable_mermaid: bool,

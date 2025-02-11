@@ -57,6 +57,7 @@ fn main() {
             output,
             css,
             mermaid,
+            mathjax,
             disable_mermaid,
             book_render,
         } => handle_render(
@@ -64,6 +65,7 @@ fn main() {
             output,
             css,
             mermaid,
+            mathjax,
             disable_mermaid,
             book_render,
             &default_root,
@@ -259,6 +261,7 @@ fn handle_render(
     output: Option<String>,
     css: Option<String>,
     mermaid: Option<String>,
+    mathjax: Option<String>,
     disable_mermaid: bool,
     book_render: bool,
     default_root: &Path,
@@ -281,12 +284,14 @@ fn handle_render(
     } else {
         Some(mermaid.unwrap_or_else(|| "src/js/mermaid.min.js".to_string()))
     };
+    let mathjax_path = Some(mathjax.unwrap_or_else(|| "src/js/tex-svg.js".to_string()));
 
     if let Err(e) = translate_markdown_folder(
         &folder,
         &root_folder.to_string_lossy(),
         &css_path,
         mermaid_path.as_ref().map(|s| s.as_str()),
+        mathjax_path.as_ref().map(|s| s.as_str()),
         book_render,
     ) {
         eprintln!("Error translating markdown: {}", e);

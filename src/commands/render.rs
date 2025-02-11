@@ -111,6 +111,7 @@ pub fn generate_html_from_markdown(
     root_doc_folder: &str,
     css_path: &str,
     mermaid_js_path: Option<&str>,
+    mathjax_js_path: Option<&str>,
     book_render: bool,
 ) -> io::Result<()> {
     // Read the Markdown file.
@@ -178,7 +179,44 @@ pub fn generate_html_from_markdown(
         String::new()
     };
 
-    // Build the complete HTML document, using the title from the front matter.
+    // Prepare MathJax injection.
+    let mathjax_config = r#"
+  <script type="text/javascript">
+    window.MathJax = {
+      tex: {
+        inlineMath: [['$', '$'], ['\\(', '\\)']],
+        displayMath: [['$$', '$$'], ['\\[', '\\]']]
+      },
+      svg: { fontCache: 'global' }
+    };
+  </script>
+"#;
+
+    // Now determine whether to inject an offline (local) version or reference the CDN.
+    let mathjax_script_tag = if let Some(mathjax_js_path) = mathjax_js_path {
+        // Read the local MathJax script file.
+        match fs::read_to_string(mathjax_js_path) {
+            Ok(script_content) => {
+                // Inject the entire script inline.
+                format!("<script type=\"text/javascript\">{}</script>", script_content)
+            }
+            Err(err) => {
+                eprintln!(
+                    "{} Failed to read MathJax file at {}: {}",
+                    "!".red(),
+                    mathjax_js_path,
+                    err
+                );
+                // Fallback: You might choose to error out or to use the CDN version.
+                "<script async src=\"https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js\"></script>".to_string()
+            }
+        }
+    } else {
+        // If no offline version is provided, fall back to the CDN version.
+        "<script async src=\"https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js\"></script>".to_string()
+    };
+
+    // Build the complete HTML document, now with MathJax support.
     let mut complete_html = format!(
         r#"<!DOCTYPE html>
 <html>
@@ -203,6 +241,9 @@ pub fn generate_html_from_markdown(
       margin-top: 0.5em;
     }}
   </style>
+  <!-- MathJax configuration and script -->
+  {mathjax_config}
+  {mathjax_script_tag}
 </head>
 <body>
   {nav_bar}
@@ -221,8 +262,6 @@ pub fn generate_html_from_markdown(
   <script>
     function startChat() {{
       var input = document.getElementById('chat-input').value;
-      // For now, we simply instruct the user to use the CLI.
-      // You can replace this with an AJAX call to a chat API if available.
       var command = 'lila chat --file "{md_file}" --prompt "' + input.replace(/"/g, '\\"') + '"';
       document.getElementById('chat-output').innerText = "To chat about this document, run the following command in your terminal:\n\n" + command;
     }}
@@ -233,6 +272,8 @@ pub fn generate_html_from_markdown(
         html_body = html_body,
         title = title,
         nav_bar = nav_bar,
+        mathjax_config = mathjax_config,
+        mathjax_script_tag = mathjax_script_tag,
         md_file = input_path,
     );
 
@@ -307,6 +348,7 @@ pub fn translate_markdown_folder(
     doc_folder: &str,
     css_path: &str,
     mermaid_js_path: Option<&str>,
+    mathjax_js_path: Option<&str>,
     book_render: bool,
 ) -> io::Result<()> {
     let mut html_paths: Vec<String> = Vec::new();
@@ -316,6 +358,7 @@ pub fn translate_markdown_folder(
         doc_folder, // pass doc_folder as the root (top-level) docs folder
         css_path,
         mermaid_js_path,
+        mathjax_js_path,
         book_render,
         &mut html_paths,
     )?;
@@ -338,6 +381,7 @@ fn translate_markdown_folder_internal(
     root_doc_folder: &str,
     css_path: &str,
     mermaid_js_path: Option<&str>,
+    mathjax_js_path: Option<&str>,
     book_render: bool,
     html_paths: &mut Vec<String>,
 ) -> io::Result<()> {
@@ -358,6 +402,7 @@ fn translate_markdown_folder_internal(
                 root_doc_folder,
                 css_path,
                 mermaid_js_path,
+                mathjax_js_path,
                 book_render,
                 html_paths,
             )?;
@@ -377,6 +422,7 @@ fn translate_markdown_folder_internal(
                 root_doc_folder,
                 css_path,
                 mermaid_js_path,
+                mathjax_js_path,
                 book_render,
             ) {
                 eprintln!(
