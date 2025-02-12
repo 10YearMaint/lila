@@ -27,6 +27,12 @@ pub struct ChatArgs {
 /// This version wraps the blocking operations in spawn_blocking and accumulates the streaming output.
 pub async fn run_chat_response(args: ChatArgs) -> HttpResponse {
     let response_text = task::spawn_blocking(move || {
+        // Log the received prompt and file.
+        println!(
+            "Processing chat request: prompt = {:?} and file = {:?}",
+            args.prompt, args.file
+        );
+
         // Create an inner multi-threaded runtime for the blocking operations.
         let rt_inner = tokio::runtime::Builder::new_multi_thread()
             .worker_threads(4)

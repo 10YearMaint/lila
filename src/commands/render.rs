@@ -263,30 +263,33 @@ pub fn generate_html_from_markdown(
         <button onclick="startChat()">Chat</button>
         <div id="chat-output" style="margin-top: 1em; font-family: monospace;"></div>
       </div>
-<script>
-  async function startChat() {{
-    const input = document.getElementById('chat-input').value;
-    const chatOutput = document.getElementById('chat-output');
+      <!-- Define filePath so that the chat script knows which Markdown file is associated -->
+      <script>
+        const filePath = "{input_path}";
+      </script>
+      <script>
+        async function startChat() {{
+          const input = document.getElementById('chat-input').value;
+          const chatOutput = document.getElementById('chat-output');
 
-    try {{
-      const response = await fetch("http://127.0.0.1:8080/chat", {{
-        method: "POST",
-        headers: {{ "Content-Type": "application/json" }},
-        body: JSON.stringify({{ prompt: input, file: filePath }})
-      }});
+          try {{
+            const response = await fetch("http://127.0.0.1:8080/chat", {{
+              method: "POST",
+              headers: {{ "Content-Type": "application/json" }},
+              body: JSON.stringify({{ prompt: input, file: filePath }})
+            }});
 
-      if (response.ok) {{
-        const data = await response.json();
-        chatOutput.innerText = data.response;
-      }} else {{
-        chatOutput.innerText = "Error: " + response.statusText;
-      }}
-    }} catch (error) {{
-      chatOutput.innerText = "Error: " + error;
-    }}
-  }}
-</script>
-
+            if (response.ok) {{
+              const data = await response.json();
+              chatOutput.innerText = data.response;
+            }} else {{
+              chatOutput.innerText = "Error: " + response.statusText;
+            }}
+          }} catch (error) {{
+            chatOutput.innerText = "Error: " + error;
+          }}
+        }}
+      </script>
     </body>
     </html>"#,
         css_content = css_content,
@@ -295,6 +298,7 @@ pub fn generate_html_from_markdown(
         nav_bar = nav_bar,
         mathjax_config = mathjax_config,
         mathjax_script_tag = mathjax_script_tag,
+        input_path = input_path,
     );
 
     if book_render {
