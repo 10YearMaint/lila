@@ -2,9 +2,12 @@ use actix_cors::Cors;
 use actix_web::{web, App, HttpResponse, HttpServer, Responder};
 use serde::{Deserialize, Serialize};
 
+use crate::server::chat::{run_chat_response, ChatArgs};
+
 #[derive(Debug, Deserialize)]
 pub struct ChatRequest {
     pub prompt: String,
+    pub file: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -13,21 +16,23 @@ pub struct ChatResponse {
 }
 
 async fn chat_handler(chat_req: web::Json<ChatRequest>) -> impl Responder {
-    let prompt = chat_req.prompt.clone();
-    let response_text = format!("Mistral says: You said \"{}\"", prompt);
-    HttpResponse::Ok().json(ChatResponse {
-        response: response_text,
-    })
+    let args = ChatArgs {
+        prompt: Some(chat_req.prompt.clone()),
+        no_db: true, // Always disable DB loading.
+        file: chat_req.file.clone(),
+    };
+
+    run_chat_response(args).await
 }
 
 pub async fn start_server() -> std::io::Result<()> {
     println!("Starting backend server on http://127.0.0.1:8080");
     HttpServer::new(|| {
         App::new()
-            // Enable permissive CORS. For production, tighten this up.
             .wrap(Cors::permissive())
             .route("/chat", web::post().to(chat_handler))
     })
+    .workers(4) // Ensure multi-threaded workers.
     .bind("127.0.0.1:8080")?
     .run()
     .await

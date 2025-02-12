@@ -2310,6 +2310,7 @@ dependencies = [
  "diesel_migrations",
  "dirs 6.0.0",
  "dotenvy",
+ "futures",
  "hf-hub 0.4.1",
  "metal",
  "mistralrs",

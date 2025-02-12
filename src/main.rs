@@ -30,16 +30,16 @@ fn main() {
     let default_root = get_default_root();
     let db_path = default_root.join("lila.db");
 
-    // Make sure the directory for it exists
+    // Ensure the directory exists.
     fs::create_dir_all(&default_root)
         .unwrap_or_else(|_| panic!("Could not create directory {:?}", default_root));
 
-    // 2. Establish a connection and run migrations once
+    // Establish DB connection and run migrations.
     let db_url = db_path.to_string_lossy().to_string();
     let mut conn = db::establish_connection(&db_url);
     db::run_migrations(&mut conn);
 
-    // Dispatch the command using dedicated helper functions.
+    // Dispatch command.
     match args.command {
         Commands::Init => handle_init(),
         Commands::Tangle {
@@ -81,7 +81,12 @@ fn main() {
             file,
         } => handle_chat(prompt, model_id, no_db, file),
         Commands::Server => {
-            let rt = tokio::runtime::Runtime::new().expect("Failed to create Tokio runtime");
+            // Create a multi-threaded Tokio runtime.
+            let rt = tokio::runtime::Builder::new_multi_thread()
+                .worker_threads(4)
+                .enable_all()
+                .build()
+                .expect("Failed to create Tokio runtime");
             rt.block_on(async {
                 if let Err(e) = server_start::start_server().await {
                     eprintln!("Server failed: {}", e);
@@ -196,15 +201,13 @@ fn handle_weave(
     fs::create_dir_all(&root_folder)
         .unwrap_or_else(|e| panic!("Could not create output folder: {}", e));
 
-    // We'll accumulate *all* created/converted .md files here.
+    // We'll accumulate all created/converted .md files here.
     let mut all_markdown_paths = Vec::new();
 
     if let Some(file) = file {
-        // Weave a single file into .md
         let input_path = PathBuf::from(&file);
         match convert_file_to_markdown(&input_path, &root_folder) {
             Ok(Some((md_out_path, _meta))) => {
-                // If a .md was actually generated
                 all_markdown_paths.push(md_out_path);
             }
             Ok(None) => {
@@ -216,10 +219,8 @@ fn handle_weave(
             Err(e) => eprintln!("Error converting file {}: {}", input_path.display(), e),
         }
     } else if let Some(folder) = folder {
-        // Weave all code files in a folder into .md
         match convert_folder_to_markdown(&folder, &root_folder.to_string_lossy()) {
             Ok(md_paths) => {
-                // We'll get back a list of .md files that were generated/copied
                 all_markdown_paths = md_paths;
             }
             Err(e) => eprintln!("Error converting folder {}: {}", folder, e),
@@ -229,13 +230,11 @@ fn handle_weave(
         return;
     }
 
-    // If we ended up with no .md files, just return
     if all_markdown_paths.is_empty() {
         println!("No Markdown files were generated or copied. Nothing to record.");
         return;
     }
 
-    // Otherwise, write them to `created_markdown_files.txt` so the "save" command can pick them up.
     let created_files_list_path = root_folder.join("created_markdown_files.txt");
     let mut f = File::create(&created_files_list_path)
         .expect("Could not create created_markdown_files.txt");
