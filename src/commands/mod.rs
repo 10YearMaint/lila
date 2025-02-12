@@ -24,12 +24,13 @@ Working with code:
     weave        Embed source code files back into Markdown format.
     edit         Auto-format code blocks in Markdown
 
-Code Literat:
+CLI Code Literat:
     save         Save the Markdown code into a SQLite database
     chat         Chat with your Code Literat
 
-Documentation:
+Web Code Literat:
     render       Convert Markdown files with embedded code into HTML
+    server       Start the AI Server for chatting with your rendered book
 
 Project management:
     rm           Remove files created by `tangle` and `render`. Use `-a` to remove all output folders
@@ -136,6 +137,9 @@ pub enum Commands {
         #[arg(short, long)]
         output: Option<String>,
     },
+
+    /// Start the AI Server for chatting with your rendered book
+    Server,
 
     /// Chat subcommand
     Chat {

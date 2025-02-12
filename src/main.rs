@@ -9,6 +9,7 @@ use std::path::{Path, PathBuf};
 
 mod commands;
 mod schema;
+mod server;
 mod utils;
 
 use commands::chat::ChatArgs;
@@ -17,6 +18,7 @@ use commands::render::translate_markdown_folder;
 use commands::tangle::{extract_code_from_folder, extract_code_from_markdown};
 use commands::weave::{convert_file_to_markdown, convert_folder_to_markdown};
 use commands::{Args, Commands};
+use server::start as server_start;
 use utils::database::db;
 use utils::utils::process_protocol_aimm;
 
@@ -78,6 +80,15 @@ fn main() {
             no_db,
             file,
         } => handle_chat(prompt, model_id, no_db, file),
+        Commands::Server => {
+            let rt = tokio::runtime::Runtime::new().expect("Failed to create Tokio runtime");
+            rt.block_on(async {
+                if let Err(e) = server_start::start_server().await {
+                    eprintln!("Server failed: {}", e);
+                }
+            });
+            return;
+        }
     }
 }
 
