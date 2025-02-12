@@ -26,11 +26,11 @@ Working with code:
 
 CLI Code Literat:
     save         Save the Markdown code into a SQLite database
-    chat         Chat with your Code Literat
+    chat         Chat with your Code Literat based on the SQLite content
 
 Web Code Literat:
     render       Convert Markdown files with embedded code into HTML
-    server       Start the AI Server for chatting with your rendered book
+    server       Start the AI Server for chatting with your rendered book about their underlying Markdown files
 
 Project management:
     rm           Remove files created by `tangle` and `render`. Use `-a` to remove all output folders
