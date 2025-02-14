@@ -62,7 +62,8 @@ fn highlight_code_blocks(html: &str) -> String {
     // This regex matches code blocks that include a class like `language-python` or `language-{.python}`.
     let re = Regex::new(
         r#"(?s)<pre><code class="[^"]*language-(?:\{\.)?([a-zA-Z0-9_+\-]+)(?:\})?[^"]*">(.*?)</code></pre>"#
-    ).unwrap();
+    )
+    .unwrap();
 
     re.replace_all(html, |caps: &regex::Captures| {
         let lang = caps.get(1).unwrap().as_str();
@@ -192,7 +193,7 @@ pub fn generate_html_from_markdown(
   </script>
 "#;
 
-    // Now determine whether to inject an offline (local) version or reference the CDN.
+    // Determine whether to inject an offline (local) version or reference the CDN.
     let mathjax_script_tag = if let Some(mathjax_js_path) = mathjax_js_path {
         // Read the local MathJax script file.
         match fs::read_to_string(mathjax_js_path) {
@@ -210,7 +211,7 @@ pub fn generate_html_from_markdown(
                     mathjax_js_path,
                     err
                 );
-                // Fallback: You might choose to error out or to use the CDN version.
+                // Fallback: Use the CDN version.
                 "<script async src=\"https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js\"></script>".to_string()
             }
         }
@@ -220,8 +221,17 @@ pub fn generate_html_from_markdown(
             .to_string()
     };
 
-    // Before building the complete HTML, normalize the input_path:
-    let normalized_input_path = input_path.replace("\\", "/");
+    // Compute a relative path for the HTML file from the root documentation folder.
+    // We canonicalize both paths to ensure they are normalized,
+    // then strip the root folder from the output path and replace backslashes.
+    let canonical_output =
+        fs::canonicalize(output_path).unwrap_or_else(|_| PathBuf::from(output_path));
+    let canonical_root =
+        fs::canonicalize(root_doc_folder).unwrap_or_else(|_| PathBuf::from(root_doc_folder));
+    let relative_html_path = canonical_output
+        .strip_prefix(&canonical_root)
+        .map(|p| p.to_string_lossy().replace("\\", "/"))
+        .unwrap_or_else(|_| output_path.replace("\\", "/"));
 
     let mut complete_html = format!(
         r#"<!DOCTYPE html>
@@ -267,7 +277,7 @@ pub fn generate_html_from_markdown(
     </div>
     <!-- Define filePath so that the chat script knows which Markdown file is associated -->
     <script>
-        const filePath = "{normalized_input_path}";
+        const filePath = "{relative_html_path}";
     </script>
     <script>
         async function startChat() {{
@@ -300,14 +310,27 @@ pub fn generate_html_from_markdown(
         nav_bar = nav_bar,
         mathjax_config = mathjax_config,
         mathjax_script_tag = mathjax_script_tag,
-        normalized_input_path = normalized_input_path,
+        relative_html_path = relative_html_path,
     );
 
+    // For book_render, replace Markdown links with HTML links.
+    // Now we use a closure to replace backslashes with forward slashes.
     if book_render {
-        // This regex finds href attributes that point to .md files and replaces them with .html links.
+        // This regex finds href attributes that point to .md files.
         let re_md = Regex::new(r#"href="([^"]+?)\.md""#).unwrap();
         complete_html = re_md
-            .replace_all(&complete_html, r#"href="$1.html""#)
+            .replace_all(&complete_html, |caps: &regex::Captures| {
+                // Grab the original link text from the capturing group.
+                let link = &caps[1];
+
+                // 1) Replace the percent‑encoded backslashes:
+                let decoded_link = link.replace("%5C", "/");
+                // 2) Replace any *literal* backslashes:
+                let decoded_link = decoded_link.replace("\\", "/");
+
+                // Format the new href to point to .html instead of .md:
+                format!("href=\"{}.html\"", decoded_link)
+            })
             .to_string();
     }
 
@@ -336,7 +359,7 @@ fn inject_mermaid_script(html_file_path: &str, mermaid_js_path: &str) -> io::Res
     let mermaid_script = format!(
         r#"
 <script type="module">
-{}
+{0}
 mermaid.initialize({{ startOnLoad: true }});
 </script>
 "#,
@@ -368,7 +391,7 @@ fn clean_mermaid_code_tags(html_file_path: &str) -> io::Result<()> {
 /// Also writes a log file listing all generated HTML file paths.
 ///
 /// The `doc_folder` parameter is the current output folder, while `root_doc_folder` should always be the
-/// top-level docs folder (where book.html resides).
+/// top-level docs folder (where book.html is).
 pub fn translate_markdown_folder(
     folder_path: &str,
     doc_folder: &str,
