@@ -77,3 +77,4 @@ doc/*
 *.db
 *.sqlite
 book/
+Lila.toml

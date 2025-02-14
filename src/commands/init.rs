@@ -110,7 +110,6 @@ fn run_recommend() -> io::Result<()> {
         println!("2) Qwen/Qwen2.5-Coder-3B-Instruct");
 
         print!("Enter 1 or 2: ");
-        // Flush stdout before reading line
         io::stdout().flush()?;
 
         let mut input = String::new();
@@ -141,10 +140,246 @@ fn run_recommend() -> io::Result<()> {
     Ok(())
 }
 
+/// Helper function to run `rustc --version` and extract the major.minor version.
+/// Returns a string like "1.71" if successful.
+fn get_rustc_version() -> Option<String> {
+    let output = Command::new("rustc").arg("--version").output().ok()?;
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    // Example output: "rustc 1.71.0 (abc123 2023-10-05)"
+    let version_token = stdout.split_whitespace().nth(1)?;
+    let parts: Vec<&str> = version_token.split('.').collect();
+    if parts.len() >= 2 {
+        Some(format!("{}.{}", parts[0], parts[1]))
+    } else {
+        None
+    }
+}
+
+/// Interactively creates a `Lila.toml` file with several sections:
+/// - [project]: asks for context and deployment description
+/// - [compliance]: added only if the user chooses to include compliance guidelines
+/// - [ai_guidance]: always includes a fixed code_of_conduct
+/// - [development]: detects the programming languages, operating system, and architecture
+/// - [dependencies]: for example, if Rust is selected, attempts to parse Cargo.toml for dependencies
+fn create_lila_toml() -> io::Result<()> {
+    // 1. [project] section
+    let mut project_context = String::new();
+    println!("\nEnter the project context (e.g. \"Physics engine for tissue simulation\"):");
+    io::stdin().read_line(&mut project_context)?;
+    let project_context = {
+        let trimmed = project_context.trim();
+        if trimmed.is_empty() {
+            "Default project context".to_string()
+        } else {
+            trimmed.to_string()
+        }
+    };
+
+    let mut deployment = String::new();
+    println!(
+        "Enter the deployment description (e.g. \"on-premise with enterprise intranet-only\"):"
+    );
+    io::stdin().read_line(&mut deployment)?;
+    let deployment = {
+        let trimmed = deployment.trim();
+        if trimmed.is_empty() {
+            "on-premise with enterprise intranet-only".to_string()
+        } else {
+            trimmed.to_string()
+        }
+    };
+
+    // 2. [compliance] section (optional)
+    let mut compliance_input = String::new();
+    println!("Do you have compliance guidelines to follow? (y/N):");
+    io::stdout().flush()?;
+    io::stdin().read_line(&mut compliance_input)?;
+    let compliance_input = compliance_input.trim().to_lowercase();
+    let compliance_section = if compliance_input == "y" || compliance_input == "yes" {
+        // Ask for ISO guidelines
+        let mut iso = String::new();
+        println!("Enter ISO compliance guidelines separated by comma (e.g. ISO/IEC 22989:2022):");
+        io::stdin().read_line(&mut iso)?;
+        let iso: Vec<&str> = iso
+            .trim()
+            .split(',')
+            .map(|s| s.trim())
+            .filter(|s| !s.is_empty())
+            .collect();
+
+        // Ask for BSI guidelines
+        let mut bsi = String::new();
+        println!(
+            "Enter BSI compliance guidelines separated by comma (e.g. APP.6 Allgemeine Software):"
+        );
+        io::stdin().read_line(&mut bsi)?;
+        let bsi: Vec<&str> = bsi
+            .trim()
+            .split(',')
+            .map(|s| s.trim())
+            .filter(|s| !s.is_empty())
+            .collect();
+
+        // Format arrays for TOML
+        let iso_array = format!(
+            "[{}]",
+            iso.iter()
+                .map(|s| format!("\"{}\"", s))
+                .collect::<Vec<_>>()
+                .join(", ")
+        );
+        let bsi_array = format!(
+            "[{}]",
+            bsi.iter()
+                .map(|s| format!("\"{}\"", s))
+                .collect::<Vec<_>>()
+                .join(", ")
+        );
+        format!("[compliance]\niso = {}\nbsi = {}\n", iso_array, bsi_array)
+    } else {
+        String::new()
+    };
+
+    // 3. [ai_guidance] section (basic code_of_conduct is fixed)
+    let code_of_conduct = r#"- Prioritize secure coding practices aligned with ISO/IEC 22989:2022 guidelines.
+- Do not introduce external dependencies beyond those listed in [dependencies] if applicable.
+- If uncertain about compliance requirements, refer to the relevant compliance references which the user has to provide you."#;
+
+    // 4. [development] section
+    // Ask for the programming languages used (we will auto-detect OS and architecture)
+    let mut languages_input = String::new();
+    println!("Enter the programming languages used in this project (comma separated, e.g. rust, python):");
+    io::stdin().read_line(&mut languages_input)?;
+    let languages: Vec<&str> = languages_input
+        .trim()
+        .split(',')
+        .map(|s| s.trim())
+        .filter(|s| !s.is_empty())
+        .collect();
+
+    // For each language, if "rust" is chosen, auto-detect the installed rustc version.
+    let mut language_entries = Vec::new();
+    for lang in languages.iter() {
+        if lang.eq_ignore_ascii_case("rust") {
+            let version = get_rustc_version().unwrap_or_else(|| "1.71".to_string());
+            language_entries.push(format!("\"rust~={}\"", version));
+        } else if lang.eq_ignore_ascii_case("python") {
+            // TODO: add auto-detection here as well.
+            language_entries.push("\"python~=3.10\"".to_string());
+        } else {
+            language_entries.push(format!("\"{}\"", lang));
+        }
+    }
+    let languages_array = format!("[{}]", language_entries.join(", "));
+
+    // Auto-detect operating system and architecture.
+    let mut sys = System::new_all();
+    sys.refresh_all();
+    // Try using sysinfo for OS name and version; fall back to Rust constants.
+    let os_name = System::name().unwrap_or_else(|| std::env::consts::OS.to_string());
+    let os_version = System::os_version().unwrap_or_else(|| "".to_string());
+    let operating_system = if os_version.is_empty() {
+        os_name
+    } else {
+        format!("{} {}", os_name, os_version)
+    };
+    let os_array = format!("[\"{}\"]", operating_system);
+
+    // For architecture, we use Rust's built-in constant.
+    let architecture = std::env::consts::ARCH;
+    let arch_array = format!("[\"{}\"]", architecture);
+
+    // 5. [dependencies] section
+    // We'll build two subsections: one for Python and one for Rust.
+    let mut dependencies_rust = String::new();
+    let mut dependencies_python = String::new();
+
+    // If Rust is among the chosen languages, try to parse Cargo.toml
+    if languages
+        .iter()
+        .any(|&lang| lang.eq_ignore_ascii_case("rust"))
+    {
+        let cargo_path = Path::new("Cargo.toml");
+        if cargo_path.exists() {
+            let cargo_content = std::fs::read_to_string(cargo_path)?;
+            // Parse using the toml crate (make sure to add toml = "0.5" to your Cargo.toml dependencies)
+            let cargo_toml: toml::Value =
+                toml::from_str(&cargo_content).unwrap_or(toml::Value::Table(Default::default()));
+            if let Some(deps) = cargo_toml.get("dependencies") {
+                if let Some(deps_table) = deps.as_table() {
+                    for (key, value) in deps_table {
+                        // Format each dependency as: key = <value>
+                        dependencies_rust.push_str(&format!("{} = {}\n", key, value));
+                    }
+                }
+            }
+        } else {
+            println!("No Cargo.toml found in the current directory, skipping Rust dependencies extraction.");
+        }
+    }
+
+    // If Python is chosen, use a default list (you might later extend this to auto-detect)
+    if languages
+        .iter()
+        .any(|&lang| lang.eq_ignore_ascii_case("python"))
+    {
+        dependencies_python.push_str("");
+    }
+
+    // 6. Build the complete Lila.toml content
+    let mut lila_toml = String::new();
+    // [project] section
+    lila_toml.push_str("[project]\n");
+    lila_toml.push_str(&format!("context = \"{}\"\n", project_context));
+    lila_toml.push_str(&format!("deployment = \"{}\"\n\n", deployment));
+    // [compliance] section (if provided)
+    if !compliance_section.is_empty() {
+        lila_toml.push_str(&compliance_section);
+        lila_toml.push('\n');
+    }
+    // [ai_guidance] section
+    lila_toml.push_str("[ai_guidance]\n");
+    lila_toml.push_str("code_of_conduct = \"\"\"\n");
+    lila_toml.push_str(code_of_conduct);
+    lila_toml.push_str("\n\"\"\"\n\n");
+    // [development] section
+    lila_toml.push_str("[development]\n");
+    lila_toml.push_str(&format!("languages = {}\n", languages_array));
+    lila_toml.push_str(&format!("operating_systems = {}\n", os_array));
+    lila_toml.push_str(&format!("architecture = {}\n\n", arch_array));
+    // [dependencies] section
+    lila_toml.push_str("[dependencies]\n\n");
+    if !dependencies_python.is_empty() {
+        lila_toml.push_str("  [dependencies.python]\n");
+        for line in dependencies_python.lines() {
+            lila_toml.push_str("  ");
+            lila_toml.push_str(line);
+            lila_toml.push('\n');
+        }
+        lila_toml.push('\n');
+    }
+    if !dependencies_rust.is_empty() {
+        lila_toml.push_str("  [dependencies.rust]\n");
+        for line in dependencies_rust.lines() {
+            lila_toml.push_str("  ");
+            lila_toml.push_str(line);
+            lila_toml.push('\n');
+        }
+        lila_toml.push('\n');
+    }
+
+    // Write Lila.toml to the current directory
+    let mut file = File::create("Lila.toml")?;
+    file.write_all(lila_toml.as_bytes())?;
+    println!("\n{}", "Lila.toml created successfully.".bright_green());
+    Ok(())
+}
+
 /// Initializes the project for Lila:
 /// 1) Sets a default LILA_OUTPUT_PATH (i.e. ~/.lila/<project_name>)
 /// 2) Checks for `black` / `rustfmt` and sets environment flags
 /// 3) Runs AI model recommendation
+/// 4) Creates a Lila.toml file for project configuration
 pub fn init() -> io::Result<()> {
     println!("{}", "Welcome to lila init!".bright_green());
     println!("This will check for code formatters and record them in your .env file.\n");
@@ -184,7 +419,7 @@ pub fn init() -> io::Result<()> {
     // Write LILA_OUTPUT_PATH to .env
     update_env_value("LILA_OUTPUT_PATH", &final_path.to_string_lossy())?;
 
-    // 2) Check black
+    // 2) Check for black
     let black_installed = check_program_availability("black");
     let black_msg = if black_installed {
         "Detected 'black' on this system."
@@ -197,7 +432,7 @@ pub fn init() -> io::Result<()> {
         if black_installed { "true" } else { "false" },
     )?;
 
-    // 2a) Check rustfmt
+    // 2a) Check for rustfmt
     let rustfmt_installed = check_program_availability("rustfmt");
     let rustfmt_msg = if rustfmt_installed {
         "Detected 'rustfmt' on this system."
@@ -213,7 +448,17 @@ pub fn init() -> io::Result<()> {
     // 3) Run system-based recommendation for AI model
     run_recommend()?;
 
-    println!("\n{}", "Done! Your .env file was updated.".bright_green());
-    println!("You can re-run `lila init` anytime if you install new formatters or want to update your AI model.\n");
+    // 4) Create Lila.toml configuration file
+    println!(
+        "\n{}",
+        "Now let’s configure your project via Lila.toml.".bright_green()
+    );
+    create_lila_toml()?;
+
+    println!(
+        "\n{}",
+        "Done! Your .env and Lila.toml files have been updated.".bright_green()
+    );
+    println!("You can re-run `lila init` anytime if you install new formatters or want to update your configuration.\n");
     Ok(())
 }
