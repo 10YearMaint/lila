@@ -220,76 +220,78 @@ pub fn generate_html_from_markdown(
             .to_string()
     };
 
-    // Build the complete HTML document, now with MathJax support.
+    // Before building the complete HTML, normalize the input_path:
+    let normalized_input_path = input_path.replace("\\", "/");
+
     let mut complete_html = format!(
         r#"<!DOCTYPE html>
     <html>
     <head>
-      <meta charset="utf-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>{title}</title>
-      <style>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{title}</title>
+    <style>
         {css_content}
         /* Additional styles for the chatbot widget */
         .chatbot {{
-          margin-top: 2em;
-          padding: 1em;
-          border: 1px solid #ccc;
-          background: #f9f9f9;
+        margin-top: 2em;
+        padding: 1em;
+        border: 1px solid #ccc;
+        background: #f9f9f9;
         }}
         .chatbot textarea {{
-          width: 100%;
-          height: 4em;
+        width: 100%;
+        height: 4em;
         }}
         .chatbot button {{
-          margin-top: 0.5em;
+        margin-top: 0.5em;
         }}
-      </style>
-      <!-- MathJax configuration and script -->
-      {mathjax_config}
-      {mathjax_script_tag}
+    </style>
+    <!-- MathJax configuration and script -->
+    {mathjax_config}
+    {mathjax_script_tag}
     </head>
     <body>
-      {nav_bar}
-      <div class="container my-5">
+    {nav_bar}
+    <div class="container my-5">
         {html_body}
-      </div>
-      <!-- Chatbot Widget -->
-      <div class="chatbot">
+    </div>
+    <!-- Chatbot Widget -->
+    <div class="chatbot">
         <p><strong>Chat about this document</strong></p>
         <p>Enter your question below and click "Chat".</p>
         <textarea id="chat-input" placeholder="Your question..."></textarea>
         <br>
         <button onclick="startChat()">Chat</button>
         <div id="chat-output" style="margin-top: 1em; font-family: monospace;"></div>
-      </div>
-      <!-- Define filePath so that the chat script knows which Markdown file is associated -->
-      <script>
-        const filePath = "{input_path}";
-      </script>
-      <script>
+    </div>
+    <!-- Define filePath so that the chat script knows which Markdown file is associated -->
+    <script>
+        const filePath = "{normalized_input_path}";
+    </script>
+    <script>
         async function startChat() {{
-          const input = document.getElementById('chat-input').value;
-          const chatOutput = document.getElementById('chat-output');
+        const input = document.getElementById('chat-input').value;
+        const chatOutput = document.getElementById('chat-output');
 
-          try {{
+        try {{
             const response = await fetch("http://127.0.0.1:8080/chat", {{
-              method: "POST",
-              headers: {{ "Content-Type": "application/json" }},
-              body: JSON.stringify({{ prompt: input, file: filePath }})
+            method: "POST",
+            headers: {{ "Content-Type": "application/json" }},
+            body: JSON.stringify({{ prompt: input, file: filePath }})
             }});
 
             if (response.ok) {{
-              const data = await response.json();
-              chatOutput.innerText = data.response;
+            const data = await response.json();
+            chatOutput.innerText = data.response;
             }} else {{
-              chatOutput.innerText = "Error: " + response.statusText;
+            chatOutput.innerText = "Error: " + response.statusText;
             }}
-          }} catch (error) {{
+        }} catch (error) {{
             chatOutput.innerText = "Error: " + error;
-          }}
         }}
-      </script>
+        }}
+    </script>
     </body>
     </html>"#,
         css_content = css_content,
@@ -298,7 +300,7 @@ pub fn generate_html_from_markdown(
         nav_bar = nav_bar,
         mathjax_config = mathjax_config,
         mathjax_script_tag = mathjax_script_tag,
-        input_path = input_path,
+        normalized_input_path = normalized_input_path,
     );
 
     if book_render {
