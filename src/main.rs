@@ -12,7 +12,6 @@ mod schema;
 mod server;
 mod utils;
 
-use commands::chat::ChatArgs;
 use commands::edit::{edit_format_code_in_folder, edit_format_code_in_markdown};
 use commands::render::translate_markdown_folder;
 use commands::tangle::{extract_code_from_folder, extract_code_from_markdown};
@@ -74,14 +73,7 @@ fn main() {
         ),
         Commands::Save { db, input } => handle_save(db, &default_root, input),
         Commands::Rm { all, output } => handle_rm(all, output, &default_root),
-        Commands::Chat {
-            prompt,
-            model_id,
-            no_db,
-            file,
-        } => handle_chat(prompt, model_id, no_db, file),
         Commands::Server => {
-            // Create a multi-threaded Tokio runtime.
             let rt = tokio::runtime::Builder::new_multi_thread()
                 .worker_threads(4)
                 .enable_all()
@@ -353,23 +345,5 @@ fn handle_rm(all: bool, output: Option<String>, default_root: &Path) {
         .unwrap_or_else(|| default_root.to_path_buf());
     if let Err(e) = commands::remove::remove_output_folder(&root_folder.to_string_lossy(), all) {
         eprintln!("Error removing project files: {}", e);
-    }
-}
-
-/// Constructs a ChatArgs struct (including the optional file parameter) and runs the chat subcommand.
-fn handle_chat(
-    prompt: Option<String>,
-    model_id: Option<String>,
-    no_db: bool,
-    file: Option<String>,
-) {
-    let chat_args = ChatArgs {
-        prompt,
-        model_id,
-        no_db,
-        file,
-    };
-    if let Err(e) = commands::chat::run_chat(chat_args) {
-        eprintln!("Error running chat: {}", e);
     }
 }

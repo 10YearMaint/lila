@@ -47,11 +47,30 @@ You just want to chat with your literate code? Use this shortcut to get started:
 
 ```bash
 lila init
-lila weave --folder example --output book
-lila save --input book
-lila chat \
-    --prompt "I know you got provided some markdown code. Can you say whats happening there? In which file did we define some Rust math equations? Can you enhance these equations and return me the corresponding code?"
+lila server
 ```
+
+
+> **Model-ID:**
+>
+> Battle Tested SLM Models to run On-Premise:
+>
+> ⭐ [microsoft/Phi-3.5-mini-instruct](https://huggingface.co/microsoft/Phi-3.5-mini-instruct), ⭐ [Qwen/Qwen2.5-Coder-3B-Instruct](https://huggingface.co/Qwen/Qwen2.5-Coder-3B-Instruct)
+>
+> Not yet tested:
+>
+> [deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B](https://huggingface.co/deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B)
+
+and in a new terminal instance:
+
+
+```bash
+lila weave --folder example --output book
+lila render --folder book --output html_book --css src/css/style.css --mermaid src/js/mermaid.min.js --book-render
+```
+
+Now open ```html_book/book.html``` and start to chat.
+
 
 ### 1. Extract Literate Code into normal Source Code
 
@@ -94,7 +113,6 @@ If you want to create HTML files from the markdown files, you can use the follow
 
 ```bash
 lila render --folder book --output html_book --css src/css/style.css --mermaid src/js/mermaid.min.js --book-render
-lila render --folder example --css src/css/style.css --disable-mermaid
 ```
 
 If you don't specify a CSS file, the default CSS of src/css/style.css will be used.
@@ -107,26 +125,8 @@ If you want to save the data of the Markdown files to a SQLite database, you can
 lila save
 ```
 
-### 6. Chat2CodeLiterat functionality
-
-```bash
-lila chat \
-    --prompt "Can you understand HTML code? Can you provide me an example code? With a button? And if I click the button every time, a counter gets increased by the number 2? Can you also add some css design within the HTML code?" \
-    --no-db \
-    --model-id Qwen/Qwen2.5-Coder-3B-Instruct
-```
 
 
-#### model-id
-
-Battle Tested SLM Models to run On-Premise：
-
-⭐ [microsoft/Phi-3.5-mini-instruct](https://huggingface.co/microsoft/Phi-3.5-mini-instruct)
-⭐ [Qwen/Qwen2.5-Coder-3B-Instruct](https://huggingface.co/Qwen/Qwen2.5-Coder-3B-Instruct)
-
-Not yet tested:
-
-[deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B](https://huggingface.co/deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B)
 
 
 ## Development Reminder

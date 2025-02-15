@@ -1,4 +1,3 @@
-pub mod chat;
 pub mod edit;
 pub mod init;
 pub mod remove;
@@ -24,15 +23,12 @@ Working with code:
     weave        Embed source code files back into Markdown format.
     edit         Auto-format code blocks in Markdown
 
-CLI Code Literat:
-    save         Save the Markdown code into a SQLite database
-    chat         Chat with your Code Literat based on the SQLite content
-
-Web Code Literat:
+Code Literat:
     render       Convert Markdown files with embedded code into HTML
     server       Start the AI Server for chatting with your rendered book about their underlying Markdown files
 
 Project management:
+    save         Save the Markdown code into a SQLite database
     rm           Remove files created by `tangle` and `render`. Use `-a` to remove all output folders
 
 {after-help}";
@@ -140,20 +136,4 @@ pub enum Commands {
 
     /// Start the AI Server for chatting with your rendered book
     Server,
-
-    /// Chat subcommand
-    Chat {
-        /// The prompt text to feed to the model
-        #[arg(long)]
-        prompt: Option<String>,
-        /// HuggingFace model ID
-        #[arg(long)]
-        model_id: Option<String>,
-        /// Disable loading data from the DB
-        #[arg(long, default_value_t = false)]
-        no_db: bool,
-        /// Optional: Specify a Markdown file whose content should be used as context for the chat.
-        #[arg(long)]
-        file: Option<String>,
-    },
 }
