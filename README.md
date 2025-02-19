@@ -1,4 +1,13 @@
-# <span style="display:inline-block;width:18px;height:18px;background-color:#6A4C9C;margin-left:8px;"></span> lila
+# <span style="display:inline-block;width:18px;height:18px;background-color:#6A4C9C;margin-left:8px;"></span> Lila
+
+**Foreword:** Plan applicable to market-stable products (including LCE products) that have a mature (API) architecture.
+
+1. Divide the software product into a modular platform.
+2. Each module gets its own module-specific AI (navigated by *Lila*).
+3. Support modules with KPIs and track them transparently in the dashboard.
+4. Automated, modular regulatory releases occur after each module has tested itself (#Lila.toml).
+5. When an engineer selects a new TSR (Technical Safety Requirements) to work on, the AI analyzes where the corresponding code section is likely to be and will function as a co-programmer.
+
 
 ## Background
 
