@@ -11,13 +11,13 @@
 
 ## Background
 
-**Maybe you know this scenario**: You’re tasked with improving and maintaining a complex codebase you’ve never seen before—or at least haven’t touched in ages. As a software engineer and former founder in the medical technology field, this happens to me all the time. Trying to re-enter the project’s mindset while under “brain drain” is a constant challenge, especially when it’s a side-business tool that doesn’t yield obvious returns. Spending time on this can seem inefficient, yet it’s often the only way to move forward.
+**Maybe you know this scenario**: You’re tasked with improving and maintaining a complex codebase you’ve never seen before—or at least haven’t touched in ages. As a software engineer and former founder in the medical technology field, this happens to me all the time. Trying to re-enter the project’s mindset while under “brain drain” is a constant challenge. Spending time on this can seem inefficient, yet it’s often the only way to move forward.
 
 We all know there are countless software architectures and standards, each valid in its own way. Every developer, like an author, has a unique, legitimate approach for creating their “text.” If you devote enough time, you can understand their perspective—like learning someone’s native language. It’s simply human to need time for **verinnerlichen**—to internalize—another person’s thought processes.
 
 But if time flows ever onward, I wonder if **AI** can be a surrogate for our original human insights.
 
-Picture a specialized AI “literate” that holds the entire project in its memory. It knows exactly where each UI component was implemented, how specific logic is structured, and how to adapt it all while respecting the intent of the original developer. Through such capabilities, code gets “**lebendig konserviert**”—preserved in a living state—waiting for a future purpose. Your thoughts and insights stay alive, ready to be revisited or expanded upon whenever the need arises. Perhaps it’s time we saw software as an **endless book**, authored by countless minds, never truly finished. In other words, let us become coding literates—developers who treat code with the same creativity and respect we give to literature.
+Picture a specialized AI “literate” that holds the entire project in its memory. It knows exactly where each UI component was implemented, how specific logic is structured, and how to adapt it all while respecting the intent of the original developer. Through such capabilities, code gets “**lebendig konserviert**”—preserved in a living state—waiting for a future purpose. Your thoughts and insights stay alive, ready to be revisited or expanded upon whenever the need arises, even if its just the maintenance of a LCE software product. Perhaps it’s time we saw software as an **endless book**, authored by countless minds, never truly finished. In other words, let us become coding literates—developers who treat code with the same creativity and respect we give to literature.
 
 
 ## Pre-Requirements:
