@@ -52,8 +52,6 @@ rustc install_windows.rs; if ($?) { .\install_windows.exe }
 
 ## Usage
 
-You just want to chat with your literate code? Use this shortcut to get started:
-
 ```bash
 lila init
 lila server
@@ -72,26 +70,12 @@ lila server
 
 and in a new terminal instance:
 
-
 ```bash
 lila weave --folder example --output book
-lila render --folder book --output html_book --css src/css/style.css --mermaid src/js/mermaid.min.js --book-render
 ```
-
-Now open ```html_book/book.html``` and start to chat.
 
 
 ### 1. Extract Literate Code into normal Source Code
-
-```bash
-./target/release/lila tangle --file example/math_operations.md
-```
-
-or for a complete folder
-
-```bash
-lila tangle --folder example
-```
 
 If you code using the *AImM* protocol you should use the following command:
 
@@ -116,49 +100,13 @@ For this use the following command logic:
 lila edit --folder example
 ```
 
-### 4. Markdown to HTML Translator
 
-If you want to create HTML files from the markdown files, you can use the following command:
-
-```bash
-lila render --folder book --output html_book --css src/css/style.css --mermaid src/js/mermaid.min.js --book-render
-```
-
-If you don't specify a CSS file, the default CSS of src/css/style.css will be used.
-
-### 5. Save Markdown files in a Database
+### 4. Save Markdown files in a Database
 
 If you want to save the data of the Markdown files to a SQLite database, you can use the following command:
 
 ```bash
 lila save
-```
-
-
-
-
-
-## Development Reminder
-
-Update schema.rs using
-
-```bash
-diesel migration run
-```
-
-### Find Outdated Packages
-
-```bash
-cargo install cargo-outdated
-cargo outdated
-```
-
-### Auto Code Formatter
-
-Don't forget to code format the rust code using
-
-```bash
-cargo fmt
 ```
 
 
@@ -168,5 +116,3 @@ Q: What is **lila**?
 
 A: **lila** stands for "**Li**terate **L**egacy **A**ssistant". Its designed primarily to empower the use of the *AImM* (AI-maintained Microservices) architecture.
 Using **lila** is about coding with the end in mind: envisioning that your project will someday be a legacy project, which you yourself will not maintain anymore. But you want to ensure that the AI can maintain, explain, and customize it, understanding your literate words and thoughts behind it.
-
-And not only that, you also want to ensure that you in a couple of months or a new developer to your project can easily find where the functionality of each of the UI screen of your app got defined. No endless searching through the codebase. Every coder normally developes in its own way and finds some convention more naturally than others. This is ok as everyone has a different concept of its software craftmanship. In fact, this is what makes us human. Using **lila**, this doesn't matter anymore because you document your UI screens using literate programming, that get intrinsically linked to the UI screens. Each new developer can easily get the starting-point for implementing or adapting something in the UI screen! This is the concept of *Locality of Behaviour*.
