@@ -74,6 +74,22 @@ and in a new terminal instance:
 lila weave --folder example --output book
 ```
 
+Afterwards, if you want to chat with the book, execute in a new terminal this:
+
+```bash
+cd MiniCodeLiterat
+npm install
+ng serve
+```
+
+And finally this command also in a new terminal:
+
+```bash
+npx electron src/electron/electron.main.js
+```
+
+Have fun chatting with your book chapters!
+
 
 ### 1. Extract Literate Code into normal Source Code
 
