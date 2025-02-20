@@ -1,0 +1,3 @@
+[submodule "MiniCodeLiterat"]
+	path = MiniCodeLiterat
+	url = git@github.com:10YearMaint/MiniCodeLiterat.git
