@@ -40,7 +40,25 @@ pub async fn run_chat_response(args: ChatArgs) -> HttpResponse {
         rt_inner.block_on(async {
             // Read the user's file (if provided)
             let context_content = if let Some(ref file_path) = args.file {
-                fs::read_to_string(file_path).unwrap_or_else(|_| String::new())
+                if file_path.starts_with("http://") || file_path.starts_with("https://") {
+                    // Fetch from URL using reqwest.
+                    match reqwest::get(file_path).await {
+                        Ok(response) => match response.text().await {
+                            Ok(text) => text,
+                            Err(e) => {
+                                println!("Error reading text from URL response: {:?}", e);
+                                String::new()
+                            }
+                        },
+                        Err(e) => {
+                            println!("Error fetching URL {}: {:?}", file_path, e);
+                            String::new()
+                        }
+                    }
+                } else {
+                    // Local file, read from filesystem.
+                    fs::read_to_string(file_path).unwrap_or_else(|_| String::new())
+                }
             } else {
                 String::new()
             };

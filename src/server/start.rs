@@ -25,11 +25,16 @@ async fn chat_handler(chat_req: web::Json<ChatRequest>) -> impl Responder {
     run_chat_response(args).await
 }
 
+async fn ping_handler() -> impl Responder {
+    HttpResponse::Ok().body("pong")
+}
+
 pub async fn start_server() -> std::io::Result<()> {
     println!("Starting backend server on http://127.0.0.1:8080");
     HttpServer::new(|| {
         App::new()
             .wrap(Cors::permissive())
+            .route("/ping", web::get().to(ping_handler))
             .route("/chat", web::post().to(chat_handler))
     })
     .workers(4) // Ensure multi-threaded workers.

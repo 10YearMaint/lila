@@ -2316,6 +2316,7 @@ dependencies = [
  "mistralrs",
  "once_cell",
  "regex",
+ "reqwest",
  "serde",
  "serde_json",
  "serde_yaml",
