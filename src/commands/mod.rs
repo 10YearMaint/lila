@@ -1,7 +1,6 @@
 pub mod edit;
 pub mod init;
 pub mod remove;
-pub mod render;
 pub mod save;
 pub mod tangle;
 pub mod weave;
@@ -24,7 +23,6 @@ Working with code:
     edit         Auto-format code blocks in Markdown
 
 Code Literat:
-    render       Convert Markdown files with embedded code into HTML
     server       Start the AI Server for chatting with your rendered book about their underlying Markdown files
 
 Project management:
@@ -86,31 +84,6 @@ pub enum Commands {
         /// Specify a folder containing Markdown files (conflicts with file)
         #[arg(short, long, conflicts_with = "file")]
         folder: Option<String>,
-    },
-
-    /// Convert Markdown files with embedded code into HTML
-    Render {
-        /// Folder containing Markdown files to be rendered
-        #[arg(short, long)]
-        folder: String,
-        /// Optional: Output folder for rendered files (default: ~/.lila/<project_name>/doc)
-        #[arg(short, long)]
-        output: Option<String>,
-        /// Optional: Custom CSS file for the output HTML
-        #[arg(short, long)]
-        css: Option<String>,
-        /// Optional: Mermaid.js file for diagram rendering
-        #[arg(short, long)]
-        mermaid: Option<String>,
-        /// Optional: Mathjax.js for latex rendering
-        #[arg(short, long)]
-        mathjax: Option<String>,
-        /// Optional: Disable Mermaid.js injection
-        #[arg(long, default_value_t = false)]
-        disable_mermaid: bool,
-        /// Optional: Replace markdown (.md) links with HTML (.html) links (for book-style indexes)
-        #[arg(long, default_value_t = false)]
-        book_render: bool,
     },
 
     /// Save the weaved code and metadata into a SQLite database.

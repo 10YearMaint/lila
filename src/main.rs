@@ -13,7 +13,6 @@ mod server;
 mod utils;
 
 use commands::edit::{edit_format_code_in_folder, edit_format_code_in_markdown};
-use commands::render::translate_markdown_folder;
 use commands::tangle::{extract_code_from_folder, extract_code_from_markdown};
 use commands::weave::{convert_file_to_markdown, convert_folder_to_markdown};
 use commands::{Args, Commands};
@@ -53,24 +52,6 @@ fn main() {
             output,
         } => handle_weave(file, folder, output, &default_root),
         Commands::Edit { file, folder } => handle_edit(file, folder),
-        Commands::Render {
-            folder,
-            output,
-            css,
-            mermaid,
-            mathjax,
-            disable_mermaid,
-            book_render,
-        } => handle_render(
-            folder,
-            output,
-            css,
-            mermaid,
-            mathjax,
-            disable_mermaid,
-            book_render,
-            &default_root,
-        ),
         Commands::Save { db, input } => handle_save(db, &default_root, input),
         Commands::Rm { all, output } => handle_rm(all, output, &default_root),
         Commands::Server => {
@@ -254,49 +235,6 @@ fn handle_edit(file: Option<String>, folder: Option<String>) {
         }
     } else {
         eprintln!("No file or folder provided for auto-formatting.");
-    }
-}
-
-/// Translates Markdown into HTML.
-fn handle_render(
-    folder: String,
-    output: Option<String>,
-    css: Option<String>,
-    mermaid: Option<String>,
-    mathjax: Option<String>,
-    disable_mermaid: bool,
-    book_render: bool,
-    default_root: &Path,
-) {
-    let root_folder = output
-        .as_ref()
-        .map(PathBuf::from)
-        .or_else(|| match env::var("LILA_OUTPUT_PATH") {
-            Ok(path) => Some(PathBuf::from(path).join("doc")),
-            Err(_) => Some(default_root.join("doc")),
-        })
-        .unwrap_or(default_root.join("doc"));
-
-    fs::create_dir_all(&root_folder)
-        .unwrap_or_else(|e| panic!("Could not create output folder: {}", e));
-
-    let css_path = css.unwrap_or_else(|| "src/css/style.css".to_string());
-    let mermaid_path = if disable_mermaid {
-        None
-    } else {
-        Some(mermaid.unwrap_or_else(|| "src/js/mermaid.min.js".to_string()))
-    };
-    let mathjax_path = Some(mathjax.unwrap_or_else(|| "src/js/tex-svg.js".to_string()));
-
-    if let Err(e) = translate_markdown_folder(
-        &folder,
-        &root_folder.to_string_lossy(),
-        &css_path,
-        mermaid_path.as_ref().map(|s| s.as_str()),
-        mathjax_path.as_ref().map(|s| s.as_str()),
-        book_render,
-    ) {
-        eprintln!("Error translating markdown: {}", e);
     }
 }
 
