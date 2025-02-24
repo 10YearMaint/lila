@@ -74,6 +74,9 @@ pub enum Commands {
         /// Specify the output directory for the resulting Markdown files.
         #[arg(short, long, value_name = "OUTPUT_DIR")]
         output: Option<String>,
+        /// Prepare the folder structure by ensuring each folder has a README.md with file mentions.
+        #[arg(long)]
+        prepare: bool,
     },
 
     /// Auto-format code blocks (Python, Rust, etc.) in a Markdown file or folder.
