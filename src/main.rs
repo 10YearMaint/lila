@@ -53,8 +53,7 @@ fn main() {
             file,
             folder,
             output,
-            prepare,
-        } => handle_weave(file, folder, output, prepare, &default_root),
+        } => handle_weave(file, folder, output, &default_root),
         Commands::Edit { file, folder } => handle_edit(file, folder),
         Commands::Save { db, input } => handle_save(db, &default_root, input),
         Commands::Rm { all, output } => handle_rm(all, output, &default_root),
@@ -71,6 +70,7 @@ fn main() {
             });
             return;
         }
+        Commands::Prepare { folder } => handle_prepare(folder),
     }
 }
 
@@ -159,92 +159,69 @@ fn handle_tangle(
     }
 }
 
+/// Handles the Weave command.
 fn handle_weave(
     file: Option<String>,
     folder: Option<String>,
     output: Option<String>,
-    prepare: bool,
-    default_root: &std::path::Path,
+    _default_root: &Path,
 ) {
     // Determine the original source folder.
     let source_folder = if let Some(ref folder_path) = folder {
-        std::path::PathBuf::from(folder_path)
+        PathBuf::from(folder_path)
     } else {
         eprintln!("No folder provided for weaving.");
         return;
     };
 
-    // Determine the output folder.
-    let root_folder = output
-        .as_ref()
-        .map(std::path::PathBuf::from)
-        .or_else(|| match std::env::var("LILA_OUTPUT_PATH") {
-            Ok(path) => Some(std::path::PathBuf::from(path).join("doc")),
-            Err(_) => Some(default_root.join("doc")),
-        })
-        .unwrap_or_else(|| default_root.join("doc"));
+    // Require an output folder.
+    if output.is_none() {
+        eprintln!("No output provided; nothing to do.");
+        return;
+    }
 
-    std::fs::create_dir_all(&root_folder)
+    let root_folder = PathBuf::from(output.unwrap());
+    fs::create_dir_all(&root_folder)
         .unwrap_or_else(|e| panic!("Could not create output folder: {}", e));
 
-    // If prepare flag is set and an output folder is specified, create a temporary copy.
-    // We want to inline placeholders (like "@{hello_world.py}") before generating the book.
-    let working_source = if prepare {
-        // Create a temporary directory inside the output folder.
-        let temp_source = root_folder.join("temp_inlined_source");
-        // Remove any existing temporary folder.
-        let _ = fs::remove_dir_all(&temp_source);
-        match copy_dir_all(&source_folder, &temp_source) {
-            Ok(_) => {
-                println!(
-                    "Copied source folder to temporary folder {} …",
-                    temp_source.display()
-                );
-                // Run the preparation step on the temporary copy.
-                if let Err(e) = prepare_readme_in_folder(&temp_source) {
-                    eprintln!("Error during preparation on temp folder: {}", e);
-                }
-                // Inline placeholders in the temporary copy BEFORE conversion.
-                if let Err(e) = inline_placeholders_in_readmes_in_folder(&temp_source) {
-                    eprintln!("Error inlining placeholders in temp folder: {}", e);
-                }
-                temp_source
-            }
-            Err(e) => {
-                eprintln!("Error copying source folder: {}", e);
-                return;
-            }
-        }
-    } else {
-        // If no preparation is needed, use the original source.
-        source_folder.clone()
-    };
+    // Copy the source to a temporary folder inside the output folder.
+    let temp_source = root_folder.join("temp_inlined_source");
+    let _ = fs::remove_dir_all(&temp_source); // Remove any existing temp folder.
+    if let Err(e) = copy_dir_all(&source_folder, &temp_source) {
+        eprintln!("Error copying source folder: {}", e);
+        return;
+    }
+    println!(
+        "Copied source folder to temporary folder {} …",
+        temp_source.display()
+    );
 
-    // Accumulate all created/converted Markdown files.
+    // Run the preparation steps on the temporary copy.
+    if let Err(e) = prepare_readme_in_folder(&temp_source) {
+        eprintln!("Error during preparation on temp folder: {}", e);
+    }
+    if let Err(e) = inline_placeholders_in_readmes_in_folder(&temp_source) {
+        eprintln!("Error inlining placeholders in temp folder: {}", e);
+    }
+
+    // Continue with conversion (processing file vs. folder).
     let mut all_markdown_paths = Vec::new();
-
     if let Some(file) = file {
-        let input_path = std::path::PathBuf::from(&file);
+        let input_path = PathBuf::from(&file);
         match convert_file_to_markdown(&input_path, &root_folder) {
-            Ok(Some((md_out_path, _meta))) => {
-                all_markdown_paths.push(md_out_path);
-            }
-            Ok(None) => {
-                println!(
-                    "Skipping file {} (already .md or something).",
-                    input_path.display()
-                );
-            }
+            Ok(Some((md_out_path, _meta))) => all_markdown_paths.push(md_out_path),
+            Ok(None) => println!(
+                "Skipping file {} (already .md or similar).",
+                input_path.display()
+            ),
             Err(e) => eprintln!("Error converting file {}: {}", input_path.display(), e),
         }
     } else if folder.is_some() {
         match convert_folder_to_markdown(
-            working_source.to_str().unwrap(),
+            temp_source.to_str().unwrap(),
             &root_folder.to_string_lossy(),
         ) {
-            Ok(md_paths) => {
-                all_markdown_paths = md_paths;
-            }
+            Ok(md_paths) => all_markdown_paths = md_paths,
             Err(e) => eprintln!("Error converting folder {}: {}", source_folder.display(), e),
         }
     } else {
@@ -257,8 +234,9 @@ fn handle_weave(
         return;
     }
 
+    // Write out a list of generated Markdown files.
     let created_files_list_path = root_folder.join("created_markdown_files.txt");
-    let mut f = std::fs::File::create(&created_files_list_path)
+    let mut f = File::create(&created_files_list_path)
         .expect("Could not create created_markdown_files.txt");
     for path in &all_markdown_paths {
         writeln!(f, "{}", path.to_string_lossy())
@@ -266,13 +244,11 @@ fn handle_weave(
     }
 
     println!(
-        "{} Wrote list of .md files to {}",
-        "✔".green(),
+        "✔ Wrote list of .md files to {}",
         created_files_list_path.display()
     );
 
     // Optionally, remove the temporary folder now that conversion is done.
-    let temp_source = root_folder.join("temp_inlined_source");
     if temp_source.exists() {
         if let Err(e) = fs::remove_dir_all(&temp_source) {
             eprintln!(
@@ -281,6 +257,18 @@ fn handle_weave(
                 e
             );
         }
+    }
+}
+
+/// Handles the Prepare command.
+fn handle_prepare(folder: String) {
+    let folder_path = PathBuf::from(folder);
+    match prepare_readme_in_folder(&folder_path) {
+        Ok(()) => println!(
+            "Successfully updated README.md files in {}",
+            folder_path.display()
+        ),
+        Err(e) => eprintln!("Error updating README.md files: {}", e),
     }
 }
 

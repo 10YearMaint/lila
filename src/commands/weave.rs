@@ -49,7 +49,10 @@ pub fn prepare_readme_in_folder(folder: &Path) -> io::Result<()> {
                 if let Some(start) = line.find("@{") {
                     if let Some(end) = line[start..].find("}") {
                         let mention = &line[start + 2..start + end];
-                        existing_mentions.insert(mention.to_string());
+                        // If the mention contains a colon, split and use the file name before the colon.
+                        let file_mention =
+                            mention.split_once(':').map_or(mention, |(file, _)| file);
+                        existing_mentions.insert(file_mention.to_string());
                     }
                 }
             }
@@ -203,7 +206,7 @@ fn inline_placeholders_in_file(file_path: &Path) -> io::Result<()> {
     let new_content = re.replace_all(&content, |caps: &regex::Captures| {
         let referenced = caps.get(1).map(|m| m.as_str()).unwrap_or("");
         // Check if the placeholder specifies an identifier.
-        if let Some((file_name, identifier)) = referenced.split_once(':') {
+        let replacement = if let Some((file_name, identifier)) = referenced.split_once(':') {
             let ref_path = parent.join(file_name);
             if ref_path.exists() {
                 match extract_definition_from_file(&ref_path, identifier) {
@@ -224,7 +227,9 @@ fn inline_placeholders_in_file(file_path: &Path) -> io::Result<()> {
             } else {
                 caps.get(0).unwrap().as_str().to_string()
             }
-        }
+        };
+        // Prepend two newlines to add an empty line before the inserted content.
+        format!("\n\n{}", replacement)
     });
 
     fs::write(file_path, new_content.as_ref())?;
@@ -443,27 +448,26 @@ fn convert_folder_to_markdown_internal(
                 .to_lowercase();
 
             if extension == "md" || extension == "markdown" {
-                // 1) Copy the file.
                 let dest_path = output_folder_path.join(path.file_name().unwrap());
-                fs::copy(&path, &dest_path)?;
-                let checkmark = "✔".green();
-                println!(
-                    "{} Copied {} -> {}",
-                    checkmark,
-                    path.display(),
-                    dest_path.display()
-                );
-
-                // 2) Try to parse front matter to see if it has an output_filename (plus brief/details).
-                if let Some(meta) = parse_markdown_front_matter(&path)? {
-                    // If it has valid front matter, record it
-                    generated_files.push((dest_path, meta));
+                // Only copy if the source and destination are not the same.
+                if fs::canonicalize(&path)? != fs::canonicalize(&dest_path)? {
+                    fs::copy(&path, &dest_path)?;
+                    println!(
+                        "{} Copied {} -> {}",
+                        "✔".green(),
+                        path.display(),
+                        dest_path.display()
+                    );
+                } else {
+                    println!(
+                        "Skipping copying Markdown file {} as it is already in place.",
+                        path.display()
+                    );
                 }
-            } else {
-                // Otherwise, convert the file into Markdown
-                if let Some((md_path, meta)) = convert_file_to_markdown(&path, &output_folder_path)?
-                {
-                    generated_files.push((md_path, meta));
+
+                // Try to parse the front matter to see if it has an output_filename.
+                if let Some(meta) = parse_markdown_front_matter(&path)? {
+                    generated_files.push((dest_path, meta));
                 }
             }
         }

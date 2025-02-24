@@ -27,7 +27,10 @@ Code Literat:
 
 Project management:
     save         Save the Markdown code into a SQLite database
-    rm           Remove files created by `tangle` and `render`. Use `-a` to remove all output folders
+    rm           Remove files created by tangle and render. Use -a to remove all output folders
+
+Prepare:
+    prepare      Prepare the folder structure by ensuring each folder has a README.md with file mentions
 
 {after-help}";
 
@@ -74,9 +77,6 @@ pub enum Commands {
         /// Specify the output directory for the resulting Markdown files.
         #[arg(short, long, value_name = "OUTPUT_DIR")]
         output: Option<String>,
-        /// Prepare the folder structure by ensuring each folder has a README.md with file mentions.
-        #[arg(long)]
-        prepare: bool,
     },
 
     /// Auto-format code blocks (Python, Rust, etc.) in a Markdown file or folder.
@@ -100,7 +100,7 @@ pub enum Commands {
         input: Option<String>,
     },
 
-    /// Remove files created by `tangle` and `render`. Use `-a` to remove all output folders.
+    /// Remove files created by tangle and render. Use -a to remove all output folders.
     Rm {
         /// Remove all files from the output folder, including other projects in .lila
         #[arg(short, long)]
@@ -112,4 +112,11 @@ pub enum Commands {
 
     /// Start the AI Server for chatting with your rendered book
     Server,
+
+    /// Prepare the folder structure by ensuring each folder has a README.md with file mentions.
+    Prepare {
+        /// Specify a folder containing Markdown files to prepare.
+        #[arg(short, long, value_name = "FOLDER")]
+        folder: String,
+    },
 }
