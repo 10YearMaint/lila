@@ -1,5 +1,6 @@
 pub mod edit;
 pub mod init;
+pub mod prepare;
 pub mod remove;
 pub mod save;
 pub mod tangle;

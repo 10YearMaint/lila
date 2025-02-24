@@ -34,227 +34,6 @@ pub fn copy_dir_all(src: &Path, dst: &Path) -> io::Result<()> {
     Ok(())
 }
 
-/// Recursively ensures that each folder in the given directory has a README.md file.
-/// If a README.md exists, it updates it by appending file mentions (in the format "@{filename}")
-/// for any files not already mentioned.
-pub fn prepare_readme_in_folder(folder: &Path) -> io::Result<()> {
-    if folder.is_dir() {
-        let readme_path = folder.join("README.md");
-        let mut existing_mentions = HashSet::new();
-        let mut existing_content = String::new();
-
-        if readme_path.exists() {
-            existing_content = fs::read_to_string(&readme_path)?;
-            for line in existing_content.lines() {
-                if let Some(start) = line.find("@{") {
-                    if let Some(end) = line[start..].find("}") {
-                        let mention = &line[start + 2..start + end];
-                        // If the mention contains a colon, split and use the file name before the colon.
-                        let file_mention =
-                            mention.split_once(':').map_or(mention, |(file, _)| file);
-                        existing_mentions.insert(file_mention.to_string());
-                    }
-                }
-            }
-        } else {
-            fs::write(&readme_path, "")?;
-        }
-
-        let mut new_mentions = Vec::new();
-        for entry in fs::read_dir(folder)? {
-            let entry = entry?;
-            let path = entry.path();
-            if path.is_file() {
-                if let Some(fname) = path.file_name().and_then(|s| s.to_str()) {
-                    if fname.eq_ignore_ascii_case("README.md") {
-                        continue;
-                    }
-                    if !existing_mentions.contains(fname) {
-                        new_mentions.push(fname.to_string());
-                    }
-                }
-            }
-        }
-
-        if !new_mentions.is_empty() {
-            let mut file = OpenOptions::new().append(true).open(&readme_path)?;
-            for mention in new_mentions {
-                writeln!(file, "@{{{}}}", mention)?;
-            }
-            println!("Updated README.md at {}", readme_path.display());
-        }
-    }
-
-    for entry in fs::read_dir(folder)? {
-        let entry = entry?;
-        let path = entry.path();
-        if path.is_dir() {
-            prepare_readme_in_folder(&path)?;
-        }
-    }
-    Ok(())
-}
-
-/// Extracts the definition (function or class) identified by `identifier` from the given file.
-/// Supports basic heuristics for Python and Rust files.
-fn extract_definition_from_file(file_path: &Path, identifier: &str) -> io::Result<Option<String>> {
-    let ext = file_path
-        .extension()
-        .and_then(|s| s.to_str())
-        .unwrap_or("")
-        .to_lowercase();
-    let file = File::open(file_path)?;
-    let reader = BufReader::new(file);
-    let mut result_lines = Vec::new();
-    let mut in_def = false;
-    let mut header_indent: Option<usize> = None;
-
-    for line in reader.lines() {
-        let line = line?;
-        if !in_def {
-            let trimmed = line.trim_start();
-            if ext == "py" {
-                // Look for Python definitions
-                if (trimmed.starts_with("def ") || trimmed.starts_with("class ")) {
-                    // tokens[1] should contain the name plus potential parameters.
-                    if let Some(rest) = trimmed.strip_prefix("def ") {
-                        if let Some(idx) = rest.find('(') {
-                            let name = rest[..idx].trim();
-                            if name == identifier {
-                                in_def = true;
-                                header_indent =
-                                    Some(line.chars().take_while(|c| c.is_whitespace()).count());
-                                result_lines.push(line);
-                            }
-                        }
-                    } else if let Some(rest) = trimmed.strip_prefix("class ") {
-                        // For class definitions, check for ':' or '('
-                        let name = rest
-                            .split(|c| c == ':' || c == '(')
-                            .next()
-                            .unwrap_or("")
-                            .trim();
-                        if name == identifier {
-                            in_def = true;
-                            header_indent =
-                                Some(line.chars().take_while(|c| c.is_whitespace()).count());
-                            result_lines.push(line);
-                        }
-                    }
-                }
-            } else if ext == "rs" {
-                // Look for Rust definitions: "fn identifier(" or "pub fn identifier("
-                if trimmed.starts_with("fn ") || trimmed.starts_with("pub fn ") {
-                    let without_pub = if trimmed.starts_with("pub fn ") {
-                        &trimmed[7..]
-                    } else {
-                        &trimmed[3..]
-                    };
-                    if without_pub.starts_with(identifier) {
-                        // Ensure that the next character is '(' or a space.
-                        let post = without_pub.chars().nth(identifier.len());
-                        if post == Some('(') || post == Some(' ') {
-                            in_def = true;
-                            header_indent =
-                                Some(line.chars().take_while(|c| c.is_whitespace()).count());
-                            result_lines.push(line);
-                        }
-                    }
-                }
-            }
-        } else {
-            // We are inside a definition block.
-            if ext == "py" {
-                // For Python, include lines that are blank or indented more than the header.
-                let current_indent = line.chars().take_while(|c| c.is_whitespace()).count();
-                if line.trim().is_empty() || current_indent > header_indent.unwrap_or(0) {
-                    result_lines.push(line);
-                } else {
-                    break;
-                }
-            } else if ext == "rs" {
-                // For Rust, use a simple brace counter.
-                result_lines.push(line.clone());
-                // Count braces in the collected lines.
-                let joined: String = result_lines.join("\n");
-                let open_braces = joined.matches('{').count();
-                let close_braces = joined.matches('}').count();
-                if open_braces > 0 && open_braces == close_braces {
-                    break;
-                }
-            }
-        }
-    }
-
-    if result_lines.is_empty() {
-        Ok(None)
-    } else {
-        Ok(Some(result_lines.join("\n")))
-    }
-}
-
-/// Scans a given file (expected to be a README.md) for placeholders of the form "@{...}".
-/// If the placeholder is of the form "@{filename:identifier}", only the corresponding
-/// definition (function or class) from the file is inlined. Otherwise, the entire file content
-/// is inlined.
-fn inline_placeholders_in_file(file_path: &Path) -> io::Result<()> {
-    let content = fs::read_to_string(file_path)?;
-    let parent = file_path.parent().unwrap_or_else(|| Path::new(""));
-
-    let re = Regex::new(r"@\{([^}]+)\}").unwrap();
-
-    let new_content = re.replace_all(&content, |caps: &regex::Captures| {
-        let referenced = caps.get(1).map(|m| m.as_str()).unwrap_or("");
-        // Check if the placeholder specifies an identifier.
-        let replacement = if let Some((file_name, identifier)) = referenced.split_once(':') {
-            let ref_path = parent.join(file_name);
-            if ref_path.exists() {
-                match extract_definition_from_file(&ref_path, identifier) {
-                    Ok(Some(def)) => def,
-                    _ => caps.get(0).unwrap().as_str().to_string(),
-                }
-            } else {
-                caps.get(0).unwrap().as_str().to_string()
-            }
-        } else {
-            // No identifier specified, inline the entire file.
-            let ref_path = parent.join(referenced);
-            if ref_path.exists() {
-                match fs::read_to_string(&ref_path) {
-                    Ok(file_content) => file_content,
-                    Err(_) => caps.get(0).unwrap().as_str().to_string(),
-                }
-            } else {
-                caps.get(0).unwrap().as_str().to_string()
-            }
-        };
-        // Prepend two newlines to add an empty line before the inserted content.
-        format!("\n\n{}", replacement)
-    });
-
-    fs::write(file_path, new_content.as_ref())?;
-    println!("Inlined placeholders in {}", file_path.display());
-    Ok(())
-}
-
-/// Recursively finds README.md files in the given folder and inlines their placeholders.
-pub fn inline_placeholders_in_readmes_in_folder(folder: &Path) -> io::Result<()> {
-    for entry in fs::read_dir(folder)? {
-        let entry = entry?;
-        let path = entry.path();
-        if path.is_dir() {
-            inline_placeholders_in_readmes_in_folder(&path)?;
-        } else if path.is_file() {
-            if let Some(fname) = path.file_name().and_then(|s| s.to_str()) {
-                if fname.eq_ignore_ascii_case("README.md") {
-                    inline_placeholders_in_file(&path)?;
-                }
-            }
-        }
-    }
-    Ok(())
-}
-
 /// Attempt to parse the front matter of a Markdown file,
 /// returning Some(MarkdownMeta) if successful, else None.
 ///
@@ -448,26 +227,27 @@ fn convert_folder_to_markdown_internal(
                 .to_lowercase();
 
             if extension == "md" || extension == "markdown" {
+                // 1) Copy the file.
                 let dest_path = output_folder_path.join(path.file_name().unwrap());
-                // Only copy if the source and destination are not the same.
-                if fs::canonicalize(&path)? != fs::canonicalize(&dest_path)? {
-                    fs::copy(&path, &dest_path)?;
-                    println!(
-                        "{} Copied {} -> {}",
-                        "✔".green(),
-                        path.display(),
-                        dest_path.display()
-                    );
-                } else {
-                    println!(
-                        "Skipping copying Markdown file {} as it is already in place.",
-                        path.display()
-                    );
-                }
+                fs::copy(&path, &dest_path)?;
+                let checkmark = "✔".green();
+                println!(
+                    "{} Copied {} -> {}",
+                    checkmark,
+                    path.display(),
+                    dest_path.display()
+                );
 
-                // Try to parse the front matter to see if it has an output_filename.
+                // 2) Try to parse front matter to see if it has an output_filename (plus brief/details).
                 if let Some(meta) = parse_markdown_front_matter(&path)? {
+                    // If it has valid front matter, record it
                     generated_files.push((dest_path, meta));
+                }
+            } else {
+                // Otherwise, convert the file into Markdown
+                if let Some((md_path, meta)) = convert_file_to_markdown(&path, &output_folder_path)?
+                {
+                    generated_files.push((md_path, meta));
                 }
             }
         }
@@ -480,6 +260,9 @@ fn convert_folder_to_markdown_internal(
 /// converts/copies files, and **then** creates a single `content.md`
 /// listing all Markdown files that have front matter with
 /// `output_filename`, plus optional `brief` and `details`.
+///
+/// **Additionally, after all processing, it inlines any placeholders**
+/// of the form `@{file:identifier}` or `@{file}` found within Markdown files.
 pub fn convert_folder_to_markdown(
     input_folder: &str,
     output_folder: &str,
@@ -579,8 +362,162 @@ pub fn convert_folder_to_markdown(
         .map(|(path, _meta)| path)
         .collect();
 
-    // Add the content.md path if you want to save it, too
     all_md_paths.push(book_content_md_path);
 
+    // 5) Finally, inline any placeholders (e.g. "@{hello_world.py:hello_world}" or "@{latex.md}")
+    // within all Markdown files in the output folder.
+    inline_placeholders_in_readmes_in_folder(&output_folder_path)?;
+
     Ok(all_md_paths)
+}
+
+/// Extracts the definition (function or class) identified by `identifier` from the given file.
+/// Supports basic heuristics for Python and Rust files.
+fn extract_definition_from_file(file_path: &Path, identifier: &str) -> io::Result<Option<String>> {
+    let ext = file_path
+        .extension()
+        .and_then(|s| s.to_str())
+        .unwrap_or("")
+        .to_lowercase();
+    let file = File::open(file_path)?;
+    let reader = BufReader::new(file);
+    let mut result_lines = Vec::new();
+    let mut in_def = false;
+    let mut header_indent: Option<usize> = None;
+
+    for line in reader.lines() {
+        let line = line?;
+        if !in_def {
+            let trimmed = line.trim_start();
+            if ext == "py" {
+                // Look for Python definitions
+                if (trimmed.starts_with("def ") || trimmed.starts_with("class ")) {
+                    if let Some(rest) = trimmed.strip_prefix("def ") {
+                        if let Some(idx) = rest.find('(') {
+                            let name = rest[..idx].trim();
+                            if name == identifier {
+                                in_def = true;
+                                header_indent =
+                                    Some(line.chars().take_while(|c| c.is_whitespace()).count());
+                                result_lines.push(line);
+                            }
+                        }
+                    } else if let Some(rest) = trimmed.strip_prefix("class ") {
+                        let name = rest
+                            .split(|c| c == ':' || c == '(')
+                            .next()
+                            .unwrap_or("")
+                            .trim();
+                        if name == identifier {
+                            in_def = true;
+                            header_indent =
+                                Some(line.chars().take_while(|c| c.is_whitespace()).count());
+                            result_lines.push(line);
+                        }
+                    }
+                }
+            } else if ext == "rs" {
+                // Look for Rust definitions: "fn identifier(" or "pub fn identifier("
+                if trimmed.starts_with("fn ") || trimmed.starts_with("pub fn ") {
+                    let without_pub = if trimmed.starts_with("pub fn ") {
+                        &trimmed[7..]
+                    } else {
+                        &trimmed[3..]
+                    };
+                    if without_pub.starts_with(identifier) {
+                        let post = without_pub.chars().nth(identifier.len());
+                        if post == Some('(') || post == Some(' ') {
+                            in_def = true;
+                            header_indent =
+                                Some(line.chars().take_while(|c| c.is_whitespace()).count());
+                            result_lines.push(line);
+                        }
+                    }
+                }
+            }
+        } else {
+            // We are inside a definition block.
+            if ext == "py" {
+                let current_indent = line.chars().take_while(|c| c.is_whitespace()).count();
+                if line.trim().is_empty() || current_indent > header_indent.unwrap_or(0) {
+                    result_lines.push(line);
+                } else {
+                    break;
+                }
+            } else if ext == "rs" {
+                result_lines.push(line.clone());
+                let joined: String = result_lines.join("\n");
+                let open_braces = joined.matches('{').count();
+                let close_braces = joined.matches('}').count();
+                if open_braces > 0 && open_braces == close_braces {
+                    break;
+                }
+            }
+        }
+    }
+
+    if result_lines.is_empty() {
+        Ok(None)
+    } else {
+        Ok(Some(result_lines.join("\n")))
+    }
+}
+
+/// Scans a given Markdown file for placeholders of the form "@{...}".
+/// If the placeholder is of the form "@{filename:identifier}", only the corresponding
+/// definition (function or class) from the file is inlined. Otherwise, the entire file content
+/// is inlined.
+fn inline_placeholders_in_file(file_path: &Path) -> io::Result<()> {
+    let content = fs::read_to_string(file_path)?;
+    let parent = file_path.parent().unwrap_or_else(|| Path::new(""));
+
+    let re = Regex::new(r"@\{([^}]+)\}").unwrap();
+
+    let new_content = re.replace_all(&content, |caps: &regex::Captures| {
+        let referenced = caps.get(1).map(|m| m.as_str()).unwrap_or("");
+        let replacement = if let Some((file_name, identifier)) = referenced.split_once(':') {
+            let ref_path = parent.join(file_name);
+            if ref_path.exists() {
+                match extract_definition_from_file(&ref_path, identifier) {
+                    Ok(Some(def)) => def,
+                    _ => caps.get(0).unwrap().as_str().to_string(),
+                }
+            } else {
+                caps.get(0).unwrap().as_str().to_string()
+            }
+        } else {
+            let ref_path = parent.join(referenced);
+            if ref_path.exists() {
+                match fs::read_to_string(&ref_path) {
+                    Ok(file_content) => file_content,
+                    Err(_) => caps.get(0).unwrap().as_str().to_string(),
+                }
+            } else {
+                caps.get(0).unwrap().as_str().to_string()
+            }
+        };
+        // Prepend two newlines to add an empty line before the inserted content.
+        format!("\n\n{}", replacement)
+    });
+
+    fs::write(file_path, new_content.as_ref())?;
+    Ok(())
+}
+
+/// Recursively finds Markdown files in the given folder and inlines their placeholders.
+pub fn inline_placeholders_in_readmes_in_folder(folder: &Path) -> io::Result<()> {
+    for entry in fs::read_dir(folder)? {
+        let entry = entry?;
+        let path = entry.path();
+        if path.is_dir() {
+            inline_placeholders_in_readmes_in_folder(&path)?;
+        } else if path.is_file() {
+            if let Some(ext) = path.extension().and_then(|s| s.to_str()) {
+                if ext.eq_ignore_ascii_case("md") {
+                    inline_placeholders_in_file(&path)?;
+                }
+            }
+        }
+    }
+    Ok(())
 }

@@ -13,10 +13,11 @@ mod server;
 mod utils;
 
 use commands::edit::{edit_format_code_in_folder, edit_format_code_in_markdown};
+use commands::prepare::prepare_readme_in_folder;
 use commands::tangle::{extract_code_from_folder, extract_code_from_markdown};
 use commands::weave::{
     convert_file_to_markdown, convert_folder_to_markdown, copy_dir_all,
-    inline_placeholders_in_readmes_in_folder, prepare_readme_in_folder,
+    inline_placeholders_in_readmes_in_folder,
 };
 use commands::{Args, Commands};
 use server::start as server_start;
@@ -159,70 +160,86 @@ fn handle_tangle(
     }
 }
 
-/// Handles the Weave command.
+/// Handles the Weave command: converts source code back into Markdown,
+/// inlining any "@{...}" placeholders, and writes out a list of generated files.
 fn handle_weave(
     file: Option<String>,
     folder: Option<String>,
     output: Option<String>,
-    _default_root: &Path,
+    default_root: &Path,
 ) {
-    // Determine the original source folder.
-    let source_folder = if let Some(ref folder_path) = folder {
-        PathBuf::from(folder_path)
-    } else {
-        eprintln!("No folder provided for weaving.");
-        return;
-    };
+    // Determine the output folder using the provided output path,
+    // or fallback to the LILA_OUTPUT_PATH environment variable or default_root.
+    let root_folder = output
+        .as_ref()
+        .map(PathBuf::from)
+        .or_else(|| match env::var("LILA_OUTPUT_PATH") {
+            Ok(path) => Some(PathBuf::from(path).join("doc")),
+            Err(_) => Some(default_root.join("doc")),
+        })
+        .unwrap_or_else(|| default_root.join("doc"));
 
-    // Require an output folder.
-    if output.is_none() {
-        eprintln!("No output provided; nothing to do.");
-        return;
-    }
-
-    let root_folder = PathBuf::from(output.unwrap());
     fs::create_dir_all(&root_folder)
         .unwrap_or_else(|e| panic!("Could not create output folder: {}", e));
 
-    // Copy the source to a temporary folder inside the output folder.
-    let temp_source = root_folder.join("temp_inlined_source");
-    let _ = fs::remove_dir_all(&temp_source); // Remove any existing temp folder.
-    if let Err(e) = copy_dir_all(&source_folder, &temp_source) {
-        eprintln!("Error copying source folder: {}", e);
-        return;
-    }
-    println!(
-        "Copied source folder to temporary folder {} …",
-        temp_source.display()
-    );
-
-    // Run the preparation steps on the temporary copy.
-    if let Err(e) = prepare_readme_in_folder(&temp_source) {
-        eprintln!("Error during preparation on temp folder: {}", e);
-    }
-    if let Err(e) = inline_placeholders_in_readmes_in_folder(&temp_source) {
-        eprintln!("Error inlining placeholders in temp folder: {}", e);
-    }
-
-    // Continue with conversion (processing file vs. folder).
+    // We'll accumulate all created/converted Markdown files here.
     let mut all_markdown_paths = Vec::new();
-    if let Some(file) = file {
-        let input_path = PathBuf::from(&file);
+
+    if let Some(file_path) = file {
+        // Process a single file.
+        let input_path = PathBuf::from(&file_path);
         match convert_file_to_markdown(&input_path, &root_folder) {
-            Ok(Some((md_out_path, _meta))) => all_markdown_paths.push(md_out_path),
-            Ok(None) => println!(
-                "Skipping file {} (already .md or similar).",
-                input_path.display()
-            ),
+            Ok(Some((md_out_path, _meta))) => {
+                all_markdown_paths.push(md_out_path);
+            }
+            Ok(None) => {
+                println!(
+                    "Skipping file {} (already .md or similar).",
+                    input_path.display()
+                );
+            }
             Err(e) => eprintln!("Error converting file {}: {}", input_path.display(), e),
         }
-    } else if folder.is_some() {
+    } else if let Some(folder_path) = folder {
+        // For folder conversion, first copy the source to a temporary folder.
+        let source_folder = PathBuf::from(&folder_path);
+        let temp_source = root_folder.join("temp_inlined_source");
+        let _ = fs::remove_dir_all(&temp_source); // Remove any existing temporary folder.
+        if let Err(e) = copy_dir_all(&source_folder, &temp_source) {
+            eprintln!("Error copying source folder: {}", e);
+            return;
+        }
+        println!(
+            "Copied source folder to temporary folder {} …",
+            temp_source.display()
+        );
+
+        // Run preparation steps on the temporary copy:
+        if let Err(e) = prepare_readme_in_folder(&temp_source) {
+            eprintln!("Error during preparation on temp folder: {}", e);
+        }
+        if let Err(e) = inline_placeholders_in_readmes_in_folder(&temp_source) {
+            eprintln!("Error inlining placeholders in temp folder: {}", e);
+        }
+
+        // Convert the temporary folder to Markdown.
         match convert_folder_to_markdown(
             temp_source.to_str().unwrap(),
             &root_folder.to_string_lossy(),
         ) {
             Ok(md_paths) => all_markdown_paths = md_paths,
             Err(e) => eprintln!("Error converting folder {}: {}", source_folder.display(), e),
+        }
+
+        // Optionally, remove the temporary folder now that conversion is done.
+        if temp_source.exists() {
+            if let Err(e) = fs::remove_dir_all(&temp_source) {
+                eprintln!(
+                    "Warning: could not remove temporary folder {}: {}",
+                    temp_source.display(),
+                    e
+                );
+            }
         }
     } else {
         eprintln!("No file or folder provided for conversion.");
@@ -244,20 +261,10 @@ fn handle_weave(
     }
 
     println!(
-        "✔ Wrote list of .md files to {}",
+        "{} Wrote list of .md files to {}",
+        "✔".green(),
         created_files_list_path.display()
     );
-
-    // Optionally, remove the temporary folder now that conversion is done.
-    if temp_source.exists() {
-        if let Err(e) = fs::remove_dir_all(&temp_source) {
-            eprintln!(
-                "Warning: could not remove temporary folder {}: {}",
-                temp_source.display(),
-                e
-            );
-        }
-    }
 }
 
 /// Handles the Prepare command.
