@@ -91,6 +91,7 @@ npx electron src/electron/electron.main.js
 
 Have fun chatting with your book chapters!
 
+## Working seamlessly with Source Code and Literate Code
 
 ### 1. Extract Literate Code into normal Source Code
 
@@ -115,15 +116,6 @@ For this use the following command logic:
 
 ```bash
 lila edit --folder example
-```
-
-
-### 4. Save Markdown files in a Database
-
-If you want to save the data of the Markdown files to a SQLite database, you can use the following command:
-
-```bash
-lila save
 ```
 
 
