@@ -6,7 +6,7 @@
 2. Each module gets its own module-specific AI (navigated by *Lila*).
 3. Support modules with KPIs and track them transparently in the dashboard.
 4. Automated, modular regulatory releases occur after each module has tested itself (#Lila.toml).
-5. When an engineer selects a new TSR (Technical Safety Requirements) to work on, the AI analyzes where the corresponding code section is likely to be and will function as a co-programmer.
+5. When an engineer selects a new TSR (Technical System Requirements) to work on, the AI analyzes where the corresponding code section is likely to be and will function as a co-programmer.
 
 
 ## Background
@@ -71,7 +71,8 @@ lila server
 and in a new terminal instance:
 
 ```bash
-lila weave --folder example --prepare --output book
+lila prepare --folder example
+lila weave --folder example --output book
 ```
 
 Afterwards, if you want to chat with the book, execute in a new terminal this:
