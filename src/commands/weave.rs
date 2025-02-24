@@ -166,7 +166,7 @@ pub fn convert_file_to_markdown(
         md_output_path.display()
     );
 
-    // Return the newly generated path + metadata so we can build book.md later
+    // Return the newly generated path + metadata so we can build content.md later
     Ok(Some((md_output_path, meta)))
 }
 
@@ -239,7 +239,7 @@ fn convert_folder_to_markdown_internal(
 }
 
 /// Public function that creates the output folder structure,
-/// converts/copies files, and **then** creates a single `book.md`
+/// converts/copies files, and **then** creates a single `content.md`
 /// listing all Markdown files that have front matter with
 /// `output_filename`, plus optional `brief` and `details`.
 pub fn convert_folder_to_markdown(
@@ -250,7 +250,7 @@ pub fn convert_folder_to_markdown(
     //    plus newly generated MD files that we know about.
     let generated_files = convert_folder_to_markdown_internal(input_folder, output_folder)?;
 
-    // 2) Group files by their top-level chapter (folder) for building `book.md`.
+    // 2) Group files by their top-level chapter (folder) for building `content.md`.
     let output_folder_path = PathBuf::from(output_folder);
     let mut chapters: HashMap<String, Vec<(PathBuf, MarkdownMeta)>> = HashMap::new();
 
@@ -277,15 +277,15 @@ pub fn convert_folder_to_markdown(
     let mut sorted_chapters: Vec<_> = chapters.into_iter().collect();
     sorted_chapters.sort_by_key(|(chapter, _)| chapter.clone());
 
-    // 3) Create a top-level 'book.md' with an overview
-    let book_md_path = output_folder_path.join("book.md");
-    let mut book_md = File::create(&book_md_path)?;
+    // 3) Create a top-level 'content.md' with an overview
+    let book_content_md_path = output_folder_path.join("content.md");
+    let mut book_content_md = File::create(&book_content_md_path)?;
 
     // Write the header
-    writeln!(book_md, "# Book Overview")?;
-    writeln!(book_md)?;
+    writeln!(book_content_md, "# Book Overview")?;
+    writeln!(book_content_md)?;
     writeln!(
-        book_md,
+        book_content_md,
         "Below is a list of all Markdown files that define an `output_filename` in \
         their front matter (if present). They are organized by chapters (folder names). \
         If a file also has a `brief` or `details`, you'll see them in the table.\n"
@@ -293,13 +293,13 @@ pub fn convert_folder_to_markdown(
 
     // Iterate over each chapter and write its table
     for (chapter_name, files) in sorted_chapters {
-        writeln!(book_md, "## Chapter: {}\n", chapter_name)?;
+        writeln!(book_content_md, "## Chapter: {}\n", chapter_name)?;
         writeln!(
-            book_md,
+            book_content_md,
             "| **File Name** | **Path** | **Brief** | **Details** |"
         )?;
         writeln!(
-            book_md,
+            book_content_md,
             "|---------------|----------|-----------|-------------|"
         )?;
 
@@ -319,30 +319,30 @@ pub fn convert_folder_to_markdown(
             };
 
             writeln!(
-                book_md,
+                book_content_md,
                 "| {} | [{}]({}) | {} | {} |",
                 meta.output_filename, relative_path, relative_path, brief, details
             )?;
         }
 
-        writeln!(book_md)?; // extra line
+        writeln!(book_content_md)?; // extra line
     }
 
     println!(
         "{} Created overview file at {}",
         "✔".green(),
-        book_md_path.display()
+        book_content_md_path.display()
     );
 
     // 4) Prepare the list of final .md files to return,
-    //    i.e. everything from generated_files plus `book.md`.
+    //    i.e. everything from generated_files plus `content.md`.
     let mut all_md_paths: Vec<PathBuf> = generated_files
         .into_iter()
         .map(|(path, _meta)| path)
         .collect();
 
-    // Add the book.md path if you want to save it, too
-    all_md_paths.push(book_md_path);
+    // Add the content.md path if you want to save it, too
+    all_md_paths.push(book_content_md_path);
 
     Ok(all_md_paths)
 }
