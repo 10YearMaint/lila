@@ -214,10 +214,6 @@ fn handle_weave(
             temp_source.display()
         );
 
-        // Run preparation steps on the temporary copy:
-        if let Err(e) = prepare_readme_in_folder(&temp_source) {
-            eprintln!("Error during preparation on temp folder: {}", e);
-        }
         if let Err(e) = inline_placeholders_in_readmes_in_folder(&temp_source) {
             eprintln!("Error inlining placeholders in temp folder: {}", e);
         }
