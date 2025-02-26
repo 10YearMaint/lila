@@ -8,6 +8,10 @@
 4. Automated, modular regulatory releases occur after each module has tested itself (#Lila.toml).
 5. When an engineer selects a new TSR (Technical System Requirements) to work on, the AI analyzes where the corresponding code section is likely to be and will function as a co-programmer.
 
+### Important
+
+Everything that got coded using Literate Programming in markdown files, can get assessed by the Code Literat by default.\
+You can decide what the Code Literat sees from the normal Source Code Files of you Codebase.
 
 ## Background
 
