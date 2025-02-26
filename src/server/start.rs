@@ -7,7 +7,7 @@ use crate::server::chat::{run_chat_response, ChatArgs};
 #[derive(Debug, Deserialize)]
 pub struct ChatRequest {
     pub prompt: String,
-    pub file: Option<String>,
+    pub file_content: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -19,7 +19,7 @@ async fn chat_handler(chat_req: web::Json<ChatRequest>) -> impl Responder {
     let args = ChatArgs {
         prompt: Some(chat_req.prompt.clone()),
         no_db: true, // Always disable DB loading.
-        file: chat_req.file.clone(),
+        file_content: chat_req.file_content.clone(),
     };
 
     run_chat_response(args).await
