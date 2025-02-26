@@ -80,13 +80,13 @@ Afterwards, if you want to chat with the book, execute in a new terminal this:
 ```bash
 cd MiniCodeLiterat
 npm install
-ng serve
+node service.js
 ```
 
 And finally this command also in a new terminal:
 
 ```bash
-npx electron src/electron/electron.main.js
+ng serve
 ```
 
 Have fun chatting with your book chapters!
