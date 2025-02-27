@@ -107,9 +107,10 @@ fn run_recommend() -> io::Result<()> {
             "Which 3B model do you want to set as your default?".bold()
         );
         println!("1) microsoft/Phi-3.5-mini-instruct");
-        println!("2) Qwen/Qwen2.5-Coder-3B-Instruct");
+        println!("2) microsoft/Phi-4-mini-instruct");
+        println!("3) Qwen/Qwen2.5-Coder-3B-Instruct");
 
-        print!("Enter 1 or 2: ");
+        print!("Enter one of the numbers: ");
         io::stdout().flush()?;
 
         let mut input = String::new();
@@ -119,7 +120,8 @@ fn run_recommend() -> io::Result<()> {
         // Default to the first if invalid input
         let model_selected = match choice {
             "1" => "microsoft/Phi-3.5-mini-instruct",
-            "2" => "Qwen/Qwen2.5-Coder-3B-Instruct",
+            "2" => "microsoft/Phi-4-mini-instruct",
+            "3" => "Qwen/Qwen2.5-Coder-3B-Instruct",
             _ => {
                 println!("Invalid choice, defaulting to 1.");
                 "microsoft/Phi-3.5-mini-instruct"
