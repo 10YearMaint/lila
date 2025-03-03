@@ -78,7 +78,7 @@ and in a new terminal instance:
 
 ```bash
 lila prepare --folder example
-lila weave --folder example --output book
+lila bookbinding --folder example --output book
 ```
 
 Afterwards, if you want to chat with the book, execute in a new terminal this:

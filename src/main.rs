@@ -12,13 +12,11 @@ mod schema;
 mod server;
 mod utils;
 
+use commands::bookbinding;
 use commands::edit::{edit_format_code_in_folder, edit_format_code_in_markdown};
 use commands::prepare::prepare_readme_in_folder;
 use commands::tangle::{extract_code_from_folder, extract_code_from_markdown};
-use commands::weave::{
-    convert_file_to_markdown, convert_folder_to_markdown, copy_dir_all,
-    inline_placeholders_in_readmes_in_folder,
-};
+use commands::weave::{convert_file_to_markdown, convert_folder_to_markdown, copy_dir_all};
 use commands::{Args, Commands};
 use server::start as server_start;
 use utils::database::db;
@@ -72,6 +70,7 @@ fn main() {
             return;
         }
         Commands::Prepare { folder } => handle_prepare(folder),
+        Commands::Bookbinding { folder, output } => handle_bookbinding(&folder, &output),
     }
 }
 
@@ -160,16 +159,15 @@ fn handle_tangle(
     }
 }
 
-/// Handles the Weave command: converts source code back into Markdown,
-/// inlining any "@{...}" placeholders, and writes out a list of generated files.
+/// Handles the Weave command: converts source code back into Markdown
+/// (without inlining placeholders) and writes out a list of generated files.
 fn handle_weave(
     file: Option<String>,
     folder: Option<String>,
     output: Option<String>,
     default_root: &Path,
 ) {
-    // Determine the output folder using the provided output path,
-    // or fallback to the LILA_OUTPUT_PATH environment variable or default_root.
+    // For the weave command, we now simply convert files without creating a book.
     let root_folder = output
         .as_ref()
         .map(PathBuf::from)
@@ -182,11 +180,9 @@ fn handle_weave(
     fs::create_dir_all(&root_folder)
         .unwrap_or_else(|e| panic!("Could not create output folder: {}", e));
 
-    // We'll accumulate all created/converted Markdown files here.
     let mut all_markdown_paths = Vec::new();
 
     if let Some(file_path) = file {
-        // Process a single file.
         let input_path = PathBuf::from(&file_path);
         match convert_file_to_markdown(&input_path, &root_folder) {
             Ok(Some((md_out_path, _meta))) => {
@@ -201,41 +197,9 @@ fn handle_weave(
             Err(e) => eprintln!("Error converting file {}: {}", input_path.display(), e),
         }
     } else if let Some(folder_path) = folder {
-        // For folder conversion, first copy the source to a temporary folder.
-        let source_folder = PathBuf::from(&folder_path);
-        let temp_source = root_folder.join("temp_inlined_source");
-        let _ = fs::remove_dir_all(&temp_source); // Remove any existing temporary folder.
-        if let Err(e) = copy_dir_all(&source_folder, &temp_source) {
-            eprintln!("Error copying source folder: {}", e);
-            return;
-        }
-        println!(
-            "Copied source folder to temporary folder {} …",
-            temp_source.display()
-        );
-
-        if let Err(e) = inline_placeholders_in_readmes_in_folder(&temp_source) {
-            eprintln!("Error inlining placeholders in temp folder: {}", e);
-        }
-
-        // Convert the temporary folder to Markdown.
-        match convert_folder_to_markdown(
-            temp_source.to_str().unwrap(),
-            &root_folder.to_string_lossy(),
-        ) {
+        match convert_folder_to_markdown(&folder_path, &root_folder.to_string_lossy()) {
             Ok(md_paths) => all_markdown_paths = md_paths,
-            Err(e) => eprintln!("Error converting folder {}: {}", source_folder.display(), e),
-        }
-
-        // Optionally, remove the temporary folder now that conversion is done.
-        if temp_source.exists() {
-            if let Err(e) = fs::remove_dir_all(&temp_source) {
-                eprintln!(
-                    "Warning: could not remove temporary folder {}: {}",
-                    temp_source.display(),
-                    e
-                );
-            }
+            Err(e) => eprintln!("Error converting folder {}: {}", folder_path, e),
         }
     } else {
         eprintln!("No file or folder provided for conversion.");
@@ -243,11 +207,10 @@ fn handle_weave(
     }
 
     if all_markdown_paths.is_empty() {
-        println!("No Markdown files were generated or copied. Nothing to record.");
+        println!("No Markdown files were generated or copied.");
         return;
     }
 
-    // Write out a list of generated Markdown files.
     let created_files_list_path = root_folder.join("created_markdown_files.txt");
     let mut f = File::create(&created_files_list_path)
         .expect("Could not create created_markdown_files.txt");
@@ -272,6 +235,13 @@ fn handle_prepare(folder: String) {
             folder_path.display()
         ),
         Err(e) => eprintln!("Error updating README.md files: {}", e),
+    }
+}
+
+/// Handles the Bookbinding command.
+fn handle_bookbinding(input_folder: &str, output_folder: &str) {
+    if let Err(e) = bookbinding::process_bookbinding(input_folder, output_folder) {
+        eprintln!("Error during book binding: {}", e);
     }
 }
 

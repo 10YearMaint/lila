@@ -1,3 +1,4 @@
+pub mod bookbinding;
 pub mod edit;
 pub mod init;
 pub mod prepare;
@@ -32,6 +33,9 @@ Project management:
 
 Prepare:
     prepare      Prepare the folder structure by ensuring each folder has a README.md with file mentions
+
+Book binding:
+    bookbinding  Inline placeholders and create a book folder with only Markdown files
 
 {after-help}";
 
@@ -116,8 +120,18 @@ pub enum Commands {
 
     /// Prepare the folder structure by ensuring each folder has a README.md with file mentions.
     Prepare {
-        /// Specify a folder containing Markdown files to prepare.
+        /// Specify the folder to prepare.
         #[arg(short, long, value_name = "FOLDER")]
         folder: String,
+    },
+
+    /// Book binding: inline placeholders and create a book folder with only Markdown files.
+    Bookbinding {
+        /// Specify the input folder containing Markdown files.
+        #[arg(short, long, value_name = "FOLDER")]
+        folder: String,
+        /// Specify the output folder for the book.
+        #[arg(short, long, value_name = "OUTPUT_FOLDER")]
+        output: String,
     },
 }
