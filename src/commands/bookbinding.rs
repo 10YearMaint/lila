@@ -4,6 +4,23 @@ use std::fs::{self, File};
 use std::io::{self, BufRead, BufReader, Write};
 use std::path::{Path, PathBuf};
 
+/// Recursively copies all contents from `src` into `dst`.
+fn copy_dir_all(src: &Path, dst: &Path) -> io::Result<()> {
+    fs::create_dir_all(dst)?;
+    for entry in fs::read_dir(src)? {
+        let entry = entry?;
+        let file_type = entry.file_type()?;
+        let src_path = entry.path();
+        let dst_path = dst.join(entry.file_name());
+        if file_type.is_dir() {
+            copy_dir_all(&src_path, &dst_path)?;
+        } else {
+            fs::copy(&src_path, &dst_path)?;
+        }
+    }
+    Ok(())
+}
+
 /// Inline placeholders in a Markdown file.
 fn inline_placeholders_in_file(file_path: &Path) -> io::Result<()> {
     let content = fs::read_to_string(file_path)?;
@@ -102,17 +119,29 @@ pub fn copy_markdown_files(src: &Path, dst: &Path) -> io::Result<()> {
     Ok(())
 }
 
-/// Processes book binding by inlining placeholders and copying Markdown files
-/// from the input folder to the output folder.
+/// Processes book binding by first copying the input folder to a temporary folder,
+/// inlining placeholders in the temporary folder, and then copying only Markdown files
+/// to the final output folder. The original input folder remains untouched.
 pub fn process_bookbinding(input_folder: &str, output_folder: &str) -> io::Result<()> {
     let input_path = Path::new(input_folder);
     let output_path = Path::new(output_folder);
 
-    // First, inline placeholders in all Markdown files within the input folder.
-    inline_placeholders_in_readmes_in_folder(input_path)?;
+    // Create a temporary folder inside the output folder.
+    let temp_folder = output_path.join("temp_inlined_source");
+    let _ = fs::remove_dir_all(&temp_folder); // Remove any existing temporary folder.
+    fs::create_dir_all(&temp_folder)?;
 
-    // Then, copy only Markdown files to the output folder.
-    copy_markdown_files(input_path, output_path)?;
+    // Copy the entire input folder to the temporary folder.
+    copy_dir_all(input_path, &temp_folder)?;
+
+    // Inline placeholders in all Markdown files within the temporary folder.
+    inline_placeholders_in_readmes_in_folder(&temp_folder)?;
+
+    // Copy only Markdown files from the temporary folder to the final output folder.
+    copy_markdown_files(&temp_folder, output_path)?;
+
+    // Remove the temporary folder.
+    fs::remove_dir_all(&temp_folder)?;
 
     println!(
         "{} Book binding complete. Markdown files copied to {}.",
